@@ -1,5 +1,4 @@
--- Flagman Xeno v6.2 (FIXED BINDS + BANG)
--- Полностью переработаны бинды и Bang
+-- Flagman Xeno v6.3 (ПКМ БИНДЫ + DELETE + BANG FIX)
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -40,6 +39,7 @@ local scaffoldConnection = nil
 local espObjects = {}
 local espConnections = {}
 local binds = {}  -- {[KeyCode] = function}
+local bindToDelete = nil  -- Функция, которую нужно удалить по Delete
 
 -- ============================================
 -- ПОЛЁТ (обычный)
@@ -248,7 +248,7 @@ local function startBang(targetName)
     end
     
     local lastMove = 0
-    local cooldown = 0.8
+    local cooldown = 0.3  -- МИНИМАЛЬНАЯ ЗАДЕРЖКА
     
     bangConnection = RunService.Heartbeat:Connect(function()
         if not bangActive or not bangTarget or not bangTarget.Character then
@@ -548,9 +548,10 @@ local function toggleAimbot()
 end
 
 -- ============================================
--- БЫСТРАЯ И СТАБИЛЬНАЯ СИСТЕМА БИНДОВ
+-- СИСТЕМА БИНДОВ (ПКМ + DELETE)
 -- ============================================
 local function bindFunction(key, func)
+    -- Удаляем старый бинд на эту клавишу
     if binds[key] then
         binds[key] = nil
     end
@@ -562,7 +563,9 @@ local function unbindFunction(key)
     if binds[key] then
         binds[key] = nil
         print("[Xeno] ❌ Бинд снят: " .. tostring(key))
+        return true
     end
+    return false
 end
 
 -- Обработка биндов
@@ -570,6 +573,17 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if binds[input.KeyCode] then
         binds[input.KeyCode]()
+    end
+    
+    -- DELETE для удаления текущего бинда (если есть выделенный)
+    if input.KeyCode == Enum.KeyCode.Delete and bindToDelete then
+        for key, func in pairs(binds) do
+            if func == bindToDelete then
+                unbindFunction(key)
+                bindToDelete = nil
+                break
+            end
+        end
     end
 end)
 
@@ -597,7 +611,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v6.2"
+Title.Text = "FLAGMAN XENO v6.3"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -634,7 +648,7 @@ UIListLayout.Parent = ButtonContainer
 local allButtons = {}
 
 -- ============================================
--- КНОПКИ С БИНДАМИ
+-- КНОПКИ (ПКМ ДЛЯ БИНДА)
 -- ============================================
 local function createButton(text, callback)
     local btn = Instance.new("TextButton")
@@ -662,14 +676,16 @@ local function createButton(text, callback)
         btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     end)
     
-    -- БИНД: нажатие колёсика → ввод клавиши
+    -- БИНД: ПРАВАЯ КНОПКА МЫШИ
     btn.MouseButton2Click:Connect(function()
+        bindToDelete = callback  -- Запоминаем функцию для удаления по Delete
+        
         local dialog = Instance.new("TextBox")
         dialog.Size = UDim2.new(0, 300, 0, 35)
         dialog.Position = UDim2.new(0.5, -150, 0.5, -17)
         dialog.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
         dialog.TextColor3 = Color3.fromRGB(255, 255, 255)
-        dialog.PlaceholderText = "Нажмите клавишу для бинда..."
+        dialog.PlaceholderText = "Нажмите клавишу для бинда (Delete для удаления)"
         dialog.ClearTextOnFocus = false
         dialog.Font = Enum.Font.GothamMedium
         dialog.TextScaled = true
@@ -680,7 +696,18 @@ local function createButton(text, callback)
         connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if gameProcessed then return end
             if input.KeyCode ~= Enum.KeyCode.Unknown then
-                bindFunction(input.KeyCode, callback)
+                if input.KeyCode == Enum.KeyCode.Delete then
+                    -- Удаляем бинд у этой функции
+                    for key, func in pairs(binds) do
+                        if func == callback then
+                            unbindFunction(key)
+                            break
+                        end
+                    end
+                    bindToDelete = nil
+                else
+                    bindFunction(input.KeyCode, callback)
+                end
                 dialog:Destroy()
                 if connection then connection:Disconnect() end
             end
@@ -832,20 +859,4 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     if fly2Connection then fly2Connection:Disconnect() fly2Connection = nil end
     if noclipPart then noclipPart:Destroy() noclipPart = nil end
     if spiderConnection then spiderConnection:Disconnect() spiderConnection = nil end
-    if scaffoldConnection then scaffoldConnection:Disconnect() scaffoldConnection = nil end
-    if bangConnection then bangConnection:Disconnect() bangConnection = nil end
-    
-    Humanoid.PlatformStand = false
-    setSpeed(1)
-    setJump(1)
-    
-    print("[Xeno] Character reset")
-end)
-
-print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v6.2 ✦")
-print("  INSERT - меню | X - Spider")
-print("  FLY X2 - в 2 раза быстрее")
-print("  BANG - 1м назад → 1м вперёд (циклично)")
-print("  БИНДЫ: колёсико на кнопке -> клавиша")
-print("═══════════════════════════════════════")
+    if scaffoldConnection
