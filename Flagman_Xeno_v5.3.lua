@@ -1,6 +1,7 @@
--- Flagman Xeno v5.3 ULTIMATE (Fly x2 + BANG)
+-- Flagman Xeno v5.3 ULTIMATE (Fly x1/x2 + BANG + ESP + бинды)
 -- Автор: good
 -- Меню: Insert | Бинды: ПКМ по кнопке | Удаление бинда: Delete
+-- GitHub: https://github.com/ваш-ник/Flagman-Xeno
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -17,7 +18,7 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 local state = {
     fly = false,
-    flySpeedMode = 1, -- 1 = обычный, 2 = x2
+    flySpeedMode = 1,
     noclip = false,
     god = false,
     spider = false,
@@ -47,16 +48,14 @@ local bangConnection = nil
 local flyKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
 local currentBindDialog = nil
 
--- =================== ГЛОБАЛЬНОЕ ХРАНИЛИЩЕ БИНДОВ ===================
 _G.XenoBinds = _G.XenoBinds or {}
 _G.XenoBindsInfo = _G.XenoBindsInfo or {}
 
--- =================== ESP ГЛОБАЛЬНЫЕ СПИСКИ ===================
 local espObjects = {}
 local espConnections = {}
 local espActivePlayers = {}
 
--- =================== FLY (с двумя режимами) ===================
+-- =================== FLY ===================
 local flyConnection = nil
 local function updateFly()
     if not state.fly or not RootPart then return end
@@ -91,7 +90,7 @@ local function toggleFly()
         bodyGyro.Parent = RootPart
         flyConnection = RunService.Heartbeat:Connect(updateFly)
         Humanoid.PlatformStand = true
-        print("[Xeno] Fly ON (speed x" .. state.flySpeedMode .. ")")
+        print("[Xeno] Fly ON (x" .. state.flySpeedMode .. ")")
     else
         if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
         if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
@@ -105,6 +104,7 @@ local function setFlySpeedMode(mode)
     state.flySpeedMode = mode
     if state.fly then
         print("[Xeno] Fly speed: x" .. mode)
+        updateFly()
     end
 end
 
@@ -129,7 +129,7 @@ UserInputService.InputEnded:Connect(function(input,gp)
     elseif k == Enum.KeyCode.LeftShift then flyKeys.Shift = false end
 end)
 
--- =================== BANG (преследование игрока) ===================
+-- =================== BANG ===================
 local function toggleBang()
     state.bang = not state.bang
     if state.bang then
@@ -139,67 +139,33 @@ local function toggleBang()
             return
         end
         if bangConnection then bangConnection:Disconnect() end
-        
-        -- Автоматически включаем Fly если выключен
-        if not state.fly then
-            toggleFly()
-        end
-        
+        if not state.fly then toggleFly() end
         local target = state.bangTarget
-        print("[Xeno] BANG ON → преследуем: " .. target.Name)
-        
+        print("[Xeno] BANG ON → " .. target.Name)
         bangConnection = RunService.Heartbeat:Connect(function()
-            if not state.bang or not state.bangTarget then
-                return
-            end
-            
+            if not state.bang or not state.bangTarget then return end
             local targetChar = state.bangTarget.Character
             if not targetChar then return end
             local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
             if not targetHRP then return end
-            
             local myPos = RootPart.Position
             local targetPos = targetHRP.Position
-            
             local distance = (targetPos - myPos).magnitude
-            
-            -- Если далеко - летим на высокой скорости
             if distance > 10 then
                 local direction = (targetPos - myPos).Unit
-                local speed = state.bangSpeed
-                if bodyVelocity then
-                    bodyVelocity.Velocity = direction * speed
-                end
-                -- Смотрим на цель
-                if bodyGyro then
-                    bodyGyro.CFrame = CFrame.new(RootPart.Position, targetPos)
-                end
+                if bodyVelocity then bodyVelocity.Velocity = direction * state.bangSpeed end
+                if bodyGyro then bodyGyro.CFrame = CFrame.new(RootPart.Position, targetPos) end
             else
-                -- ДОБРАЛИСЬ до цели - делаем хаотичные движения вперёд-назад
-                local offset = Vector3.new(
-                    math.sin(tick() * 5) * 2,
-                    math.sin(tick() * 3) * 1.5,
-                    math.cos(tick() * 4) * 2
-                )
+                local offset = Vector3.new(math.sin(tick()*5)*2, math.sin(tick()*3)*1.5, math.cos(tick()*4)*2)
                 local movePos = targetPos + offset
                 local direction = (movePos - myPos).Unit
-                if bodyVelocity then
-                    bodyVelocity.Velocity = direction * state.bangSpeed * 0.8
-                end
-                if bodyGyro then
-                    bodyGyro.CFrame = CFrame.new(RootPart.Position, targetPos + Vector3.new(0, 1, 0))
-                end
+                if bodyVelocity then bodyVelocity.Velocity = direction * state.bangSpeed * 0.8 end
+                if bodyGyro then bodyGyro.CFrame = CFrame.new(RootPart.Position, targetPos + Vector3.new(0,1,0)) end
             end
         end)
     else
-        if bangConnection then
-            bangConnection:Disconnect()
-            bangConnection = nil
-        end
-        -- Сбрасываем скорость полёта
-        if bodyVelocity then
-            bodyVelocity.Velocity = Vector3.new(0,0,0)
-        end
+        if bangConnection then bangConnection:Disconnect() bangConnection = nil end
+        if bodyVelocity then bodyVelocity.Velocity = Vector3.new(0,0,0) end
         print("[Xeno] BANG OFF")
     end
 end
@@ -209,19 +175,14 @@ local function setBangTarget(playerName)
         if player.Name:lower():find(playerName:lower()) then
             state.bangTarget = player
             print("[Xeno] Цель BANG: " .. player.Name)
-            -- Если BANG уже включён - перезапускаем
-            if state.bang then
-                toggleBang()
-                wait(0.1)
-                toggleBang()
-            end
+            if state.bang then toggleBang(); wait(0.1); toggleBang() end
             return
         end
     end
     print("[Xeno] Игрок не найден: " .. playerName)
 end
 
--- =================== NOCLIP ===================
+-- =================== ОСТАЛЬНЫЕ ФУНКЦИИ ===================
 local function toggleNoclip()
     state.noclip = not state.noclip
     if state.noclip then
@@ -229,9 +190,7 @@ local function toggleNoclip()
         noclipConnection = RunService.Heartbeat:Connect(function()
             if state.noclip and Character and Character.Parent then
                 for _, part in ipairs(Character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CanCollide = false
-                    end
+                    if part:IsA("BasePart") then part.CanCollide = false end
                 end
             end
         end)
@@ -239,15 +198,12 @@ local function toggleNoclip()
     else
         if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
         for _, part in ipairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
-            end
+            if part:IsA("BasePart") then part.CanCollide = true end
         end
         print("[Xeno] Noclip OFF")
     end
 end
 
--- =================== GOD ===================
 local function toggleGod()
     state.god = not state.god
     if state.god then
@@ -263,7 +219,6 @@ local function toggleGod()
     end
 end
 
--- =================== SPIDER ===================
 local function toggleSpider()
     state.spider = not state.spider
     if state.spider then
@@ -287,7 +242,6 @@ local function toggleSpider()
     end
 end
 
--- =================== SCAFFOLD ===================
 local function toggleScaffold()
     state.scaffold = not state.scaffold
     if state.scaffold then
@@ -317,7 +271,6 @@ local function toggleScaffold()
     end
 end
 
--- =================== ANTI-AFK ===================
 local function toggleAntiAFK()
     state.antiAFK = not state.antiAFK
     if state.antiAFK then
@@ -335,7 +288,6 @@ local function toggleAntiAFK()
     end
 end
 
--- =================== INFINITE JUMP ===================
 local function toggleInfiniteJump()
     state.infiniteJump = not state.infiniteJump
     if state.infiniteJump then
@@ -352,7 +304,6 @@ local function toggleInfiniteJump()
     end
 end
 
--- =================== SPEED / JUMP ===================
 local function setSpeed(v)
     state.speed = v or 1
     Humanoid.WalkSpeed = 16 * state.speed
@@ -365,7 +316,6 @@ local function setJump(v)
     print("[Xeno] Jump: " .. Humanoid.JumpPower)
 end
 
--- =================== CLEAR / KILL / TP ===================
 local function clearAll()
     local count = 0
     for _, part in ipairs(Workspace:GetDescendants()) do
@@ -405,58 +355,49 @@ local function teleportToPlayer(name)
     print("[Xeno] Player not found")
 end
 
--- =================== ESP (ПОЛНАЯ ОЧИСТКА) ===================
+-- =================== ESP ===================
 local function createESP(player)
-    if player == LocalPlayer then return end
-    if espActivePlayers[player] then return end
-    
+    if player == LocalPlayer or espActivePlayers[player] then return end
     local char = player.Character
     if not char then return end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-    
     espActivePlayers[player] = true
-    
     local box = Instance.new("BoxHandleAdornment")
-    box.Size = Vector3.new(3, 5, 1.5)
+    box.Size = Vector3.new(3,5,1.5)
     box.Adornee = hrp
-    box.Color3 = Color3.fromRGB(255, 50, 80)
+    box.Color3 = Color3.fromRGB(255,50,80)
     box.Transparency = 0.4
     box.AlwaysOnTop = true
     box.ZIndex = 10
     box.Parent = hrp
-    
     local bill = Instance.new("BillboardGui")
     bill.Adornee = hrp
-    bill.Size = UDim2.new(0, 200, 0, 50)
-    bill.StudsOffset = Vector3.new(0, 4, 0)
+    bill.Size = UDim2.new(0,200,0,50)
+    bill.StudsOffset = Vector3.new(0,4,0)
     bill.AlwaysOnTop = true
     bill.Parent = hrp
-    
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, 0, 1, 0)
+    label.Size = UDim2.new(1,0,1,0)
     label.BackgroundTransparency = 1
     label.Text = player.Name .. " [100 HP]"
-    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextColor3 = Color3.fromRGB(255,255,255)
     label.TextScaled = true
     label.Font = Enum.Font.GothamBold
     label.Parent = bill
-    
     table.insert(espObjects, box)
     table.insert(espObjects, bill)
     table.insert(espObjects, label)
-    
     local function updateESP()
         local hum = char:FindFirstChild("Humanoid")
         if hum and hum.Parent then
             local hp = hum.Health
             label.Text = player.Name .. " [" .. math.floor(hp) .. " HP]"
-            if hp < 30 then box.Color3 = Color3.fromRGB(255, 0, 0)
-            elseif hp < 70 then box.Color3 = Color3.fromRGB(255, 255, 0)
-            else box.Color3 = Color3.fromRGB(0, 255, 0) end
+            if hp < 30 then box.Color3 = Color3.fromRGB(255,0,0)
+            elseif hp < 70 then box.Color3 = Color3.fromRGB(255,255,0)
+            else box.Color3 = Color3.fromRGB(0,255,0) end
         end
     end
-    
     local hum = char:FindFirstChild("Humanoid")
     local healthConn = nil
     if hum then
@@ -464,7 +405,6 @@ local function createESP(player)
         table.insert(espConnections, healthConn)
         updateESP()
     end
-    
     local ancConn = char.AncestryChanged:Connect(function()
         if not char.Parent then
             for i = #espObjects, 1, -1 do
@@ -480,7 +420,6 @@ local function createESP(player)
         end
     end)
     table.insert(espConnections, ancConn)
-    
     local charAddedConn = player.CharacterAdded:Connect(function(newChar)
         wait(0.5)
         if state.esp and newChar and newChar:FindFirstChild("HumanoidRootPart") then
@@ -501,30 +440,22 @@ end
 local function cleanESP()
     for i = #espObjects, 1, -1 do
         local obj = espObjects[i]
-        if obj then
-            pcall(function() obj:Destroy() end)
-        end
+        if obj then pcall(function() obj:Destroy() end) end
         table.remove(espObjects, i)
     end
     for i = #espConnections, 1, -1 do
         local conn = espConnections[i]
-        if conn then
-            pcall(function() conn:Disconnect() end)
-        end
+        if conn then pcall(function() conn:Disconnect() end) end
         table.remove(espConnections, i)
     end
     espActivePlayers = {}
     for _, obj in ipairs(Workspace:GetDescendants()) do
-        if obj:IsA("BoxHandleAdornment") then
-            if obj.Color3 and (obj.Color3.R > 0.8 or obj.Color3.G > 0.8) then
+        if obj:IsA("BoxHandleAdornment") and obj.Color3 and (obj.Color3.R > 0.8 or obj.Color3.G > 0.8) then
+            pcall(function() obj:Destroy() end)
+        elseif obj:IsA("BillboardGui") and obj.Size == UDim2.new(0,200,0,50) then
+            local label = obj:FindFirstChild("TextLabel")
+            if label and label.Text and label.Text:match("%[%d+ HP%]") then
                 pcall(function() obj:Destroy() end)
-            end
-        elseif obj:IsA("BillboardGui") then
-            if obj.Size == UDim2.new(0, 200, 0, 50) then
-                local label = obj:FindFirstChild("TextLabel")
-                if label and label.Text and label.Text:match("%[%d+ HP%]") then
-                    pcall(function() obj:Destroy() end)
-                end
             end
         end
     end
@@ -535,9 +466,7 @@ local function toggleESP()
     state.esp = not state.esp
     if state.esp then
         cleanESP()
-        for _, player in ipairs(Players:GetPlayers()) do
-            createESP(player)
-        end
+        for _, player in ipairs(Players:GetPlayers()) do createESP(player) end
         local playerAddedConn = Players.PlayerAdded:Connect(function(player)
             player.CharacterAdded:Connect(function()
                 wait(0.5)
@@ -552,7 +481,6 @@ local function toggleESP()
     end
 end
 
--- =================== AIMBOT ===================
 local function toggleAimbot()
     state.aimbot = not state.aimbot
     print("[Xeno] Aimbot " .. (state.aimbot and "ON" or "OFF"))
@@ -590,7 +518,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- =================== GUI МЕНЮ ===================
+-- =================== GUI ===================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FlagmanXenoUI"
 ScreenGui.ResetOnSpawn = false
@@ -659,79 +587,68 @@ BindInfo.Parent = MainFrame
 
 local allButtons = {}
 
--- =================== СИСТЕМА БИНДОВ ===================
 local function setupBind(button, callback, funcName)
     button.MouseButton2Click:Connect(function()
         if currentBindDialog and currentBindDialog.Parent then
             currentBindDialog:Destroy()
             currentBindDialog = nil
         end
-        
         local dialog = Instance.new("Frame")
-        dialog.Size = UDim2.new(0, 350, 0, 140)
-        dialog.Position = UDim2.new(0.5, -175, 0.5, -70)
-        dialog.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+        dialog.Size = UDim2.new(0,350,0,140)
+        dialog.Position = UDim2.new(0.5,-175,0.5,-70)
+        dialog.BackgroundColor3 = Color3.fromRGB(20,20,40)
         dialog.BorderSizePixel = 2
-        dialog.BorderColor3 = Color3.fromRGB(255, 80, 80)
+        dialog.BorderColor3 = Color3.fromRGB(255,80,80)
         dialog.Parent = MainFrame
         currentBindDialog = dialog
-        
         local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 0, 30)
-        label.Position = UDim2.new(0, 0, 0, 5)
+        label.Size = UDim2.new(1,0,0,30)
+        label.Position = UDim2.new(0,0,0,5)
         label.BackgroundTransparency = 1
         label.Text = "Нажмите клавишу для бинда"
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextColor3 = Color3.fromRGB(255,255,255)
         label.TextScaled = true
         label.Font = Enum.Font.GothamMedium
         label.Parent = dialog
-        
         local keyDisplay = Instance.new("TextLabel")
-        keyDisplay.Size = UDim2.new(1, 0, 0, 30)
-        keyDisplay.Position = UDim2.new(0, 0, 0, 40)
-        keyDisplay.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        keyDisplay.Size = UDim2.new(1,0,0,30)
+        keyDisplay.Position = UDim2.new(0,0,0,40)
+        keyDisplay.BackgroundColor3 = Color3.fromRGB(40,40,60)
         keyDisplay.Text = "Ожидание..."
-        keyDisplay.TextColor3 = Color3.fromRGB(255, 255, 100)
+        keyDisplay.TextColor3 = Color3.fromRGB(255,255,100)
         keyDisplay.TextScaled = true
         keyDisplay.Font = Enum.Font.GothamBold
         keyDisplay.Parent = dialog
-        
         local deleteLabel = Instance.new("TextLabel")
-        deleteLabel.Size = UDim2.new(1, 0, 0, 25)
-        deleteLabel.Position = UDim2.new(0, 0, 0, 75)
+        deleteLabel.Size = UDim2.new(1,0,0,25)
+        deleteLabel.Position = UDim2.new(0,0,0,75)
         deleteLabel.BackgroundTransparency = 1
         deleteLabel.Text = "Нажмите DELETE чтобы удалить бинд"
-        deleteLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        deleteLabel.TextColor3 = Color3.fromRGB(255,100,100)
         deleteLabel.TextScaled = true
         deleteLabel.Font = Enum.Font.GothamMedium
         deleteLabel.Parent = dialog
-        
         local closeBtn = Instance.new("TextButton")
-        closeBtn.Size = UDim2.new(0, 80, 0, 25)
-        closeBtn.Position = UDim2.new(0.5, -40, 1, -30)
-        closeBtn.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
+        closeBtn.Size = UDim2.new(0,80,0,25)
+        closeBtn.Position = UDim2.new(0.5,-40,1,-30)
+        closeBtn.BackgroundColor3 = Color3.fromRGB(60,20,20)
         closeBtn.Text = "Отмена"
-        closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        closeBtn.TextColor3 = Color3.fromRGB(255,255,255)
         closeBtn.TextScaled = true
         closeBtn.Font = Enum.Font.GothamMedium
         closeBtn.Parent = dialog
-        
         local bindConnection
         local dialogDestroyed = false
-        
         closeBtn.MouseButton1Click:Connect(function()
             dialogDestroyed = true
             if bindConnection then bindConnection:Disconnect() end
             dialog:Destroy()
             currentBindDialog = nil
         end)
-        
         bindConnection = UserInputService.InputBegan:Connect(function(input, gp)
             if gp then return end
             if dialogDestroyed then return end
-            
             local key = input.KeyCode
-            
             if key == Enum.KeyCode.Delete then
                 local found = false
                 for k, v in pairs(_G.XenoBinds) do
@@ -743,23 +660,22 @@ local function setupBind(button, callback, funcName)
                 end
                 if found then
                     keyDisplay.Text = "🗑️ Бинд удалён!"
-                    keyDisplay.TextColor3 = Color3.fromRGB(255, 100, 100)
-                    button.BackgroundColor3 = Color3.fromRGB(100, 50, 50)
+                    keyDisplay.TextColor3 = Color3.fromRGB(255,100,100)
+                    button.BackgroundColor3 = Color3.fromRGB(100,50,50)
                     print("[Xeno] Бинд удалён для: " .. funcName)
                     wait(0.8)
                 else
                     keyDisplay.Text = "⚠️ Бинда нет"
-                    keyDisplay.TextColor3 = Color3.fromRGB(255, 200, 0)
+                    keyDisplay.TextColor3 = Color3.fromRGB(255,200,0)
                     wait(0.8)
                 end
                 dialogDestroyed = true
                 bindConnection:Disconnect()
                 dialog:Destroy()
                 currentBindDialog = nil
-                button.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+                button.BackgroundColor3 = Color3.fromRGB(40,40,60)
                 return
             end
-            
             if key ~= Enum.KeyCode.Unknown then
                 for k, v in pairs(_G.XenoBinds) do
                     if v == callback then
@@ -770,18 +686,17 @@ local function setupBind(button, callback, funcName)
                 _G.XenoBinds[key] = callback
                 _G.XenoBindsInfo[key] = funcName
                 keyDisplay.Text = "✅ " .. key.Name .. " → " .. funcName
-                keyDisplay.TextColor3 = Color3.fromRGB(100, 255, 100)
-                button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+                keyDisplay.TextColor3 = Color3.fromRGB(100,255,100)
+                button.BackgroundColor3 = Color3.fromRGB(0,200,0)
                 print("[Xeno] Бинд установлен: " .. key.Name .. " → " .. funcName)
                 wait(0.8)
                 dialogDestroyed = true
                 bindConnection:Disconnect()
                 dialog:Destroy()
                 currentBindDialog = nil
-                button.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+                button.BackgroundColor3 = Color3.fromRGB(40,40,60)
             end
         end)
-        
         dialog.AncestryChanged:Connect(function()
             if not dialog.Parent then
                 dialogDestroyed = true
@@ -792,7 +707,6 @@ local function setupBind(button, callback, funcName)
     end)
 end
 
--- =================== СОЗДАНИЕ КНОПОК ===================
 local function createButton(text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1,0,0,40)
@@ -804,24 +718,20 @@ local function createButton(text, callback)
     btn.BorderSizePixel = 1
     btn.BorderColor3 = Color3.fromRGB(100,100,150)
     btn.Parent = ButtonContainer
-    
     btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(60,60,90) end)
     btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(40,40,60) end)
-    
     btn.MouseButton1Click:Connect(function()
         callback()
         btn.BackgroundColor3 = Color3.fromRGB(100,255,100)
         wait(0.1)
         btn.BackgroundColor3 = Color3.fromRGB(40,40,60)
     end)
-    
     setupBind(btn, callback, text)
-    
     table.insert(allButtons, {button = btn, text = text:lower()})
     return btn
 end
 
--- =================== КНОПКИ МЕНЮ ===================
+-- =================== КНОПКИ ===================
 createButton("Fly (WASD+Space/Shift)", toggleFly)
 createButton("Fly Speed x1", function() setFlySpeedMode(1) end)
 createButton("Fly Speed x2", function() setFlySpeedMode(2) end)
@@ -835,4 +745,40 @@ createButton("Anti-AFK", toggleAntiAFK)
 createButton("Infinite Jump", toggleInfiniteJump)
 createButton("Speed x2", function() setSpeed(2) end)
 createButton("Speed x3", function() setSpeed(3) end)
-createButton("Jump x2", function
+createButton("Jump x2", function() setJump(2) end)
+createButton("Jump x3", function() setJump(3) end)
+createButton("Reset Speed", function() setSpeed(1) end)
+createButton("Reset Jump", function() setJump(1) end)
+createButton("Clear Parts", clearAll)
+createButton("Kill All", killAll)
+
+-- BANG
+local bangButton = createButton("BANG (преследовать игрока)", toggleBang)
+bangButton.MouseButton2Click:Connect(function()
+    if currentBindDialog and currentBindDialog.Parent then
+        currentBindDialog:Destroy()
+        currentBindDialog = nil
+    end
+    local dialog = Instance.new("Frame")
+    dialog.Size = UDim2.new(0,350,0,120)
+    dialog.Position = UDim2.new(0.5,-175,0.5,-60)
+    dialog.BackgroundColor3 = Color3.fromRGB(20,20,40)
+    dialog.BorderSizePixel = 2
+    dialog.BorderColor3 = Color3.fromRGB(255,80,80)
+    dialog.Parent = MainFrame
+    currentBindDialog = dialog
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1,0,0,30)
+    label.Position = UDim2.new(0,0,0,5)
+    label.BackgroundTransparency = 1
+    label.Text = "Введите ник цели для BANG"
+    label.TextColor3 = Color3.fromRGB(255,255,255)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamMedium
+    label.Parent = dialog
+    local inputBox = Instance.new("TextBox")
+    inputBox.Size = UDim2.new(1,-20,0,35)
+    inputBox.Position = UDim2.new(0,10,0,40)
+    inputBox.BackgroundColor3 = Color3.fromRGB(40,40,60)
+    inputBox.TextColor3 = Color3.fromRGB(255,255,255)
+    inputBox.PlaceholderText = "Ник игрока..."
