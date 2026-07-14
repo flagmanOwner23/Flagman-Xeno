@@ -1,7 +1,5 @@
--- Flagman Xeno v6.6 (FIXED BINDS + INFINITY JUMP)
--- Бинды: ПКМ на кнопке -> нажать клавишу (без диалогов)
--- Delete: снять бинд
--- Infinity Jump: работает стабильно
+-- Flagman Xeno v6.7 (FULL FIX)
+-- Исправлены все ошибки, скрипт запускается и работает стабильно
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -227,19 +225,18 @@ UserInputService.InputEnded:Connect(function(input, gp)
 end)
 
 -- ============================================
--- INFINITY JUMP (исправлен)
+-- INFINITY JUMP (ИСПРАВЛЕН)
 -- ============================================
 local function toggleInfinityJump()
     state.infinityJump = not state.infinityJump
     if state.infinityJump then
         if infinityJumpConnection then infinityJumpConnection:Disconnect() end
-        infinityJumpConnection = RunService.Heartbeat:Connect(function()
-            if state.infinityJump and Humanoid and Humanoid.Parent then
-                if Humanoid.FloorMaterial == Enum.Material.Air then
-                    Humanoid.Jump = true
-                    task.wait(0.05)
-                    Humanoid.Jump = false
-                end
+        infinityJumpConnection = UserInputService.InputBegan:Connect(function(input, gp)
+            if gp then return end
+            if input.KeyCode == Enum.KeyCode.Space then
+                Humanoid.Jump = true
+                task.wait(0.05)
+                Humanoid.Jump = false
             end
         end)
         print("[Xeno] Infinity Jump ON")
@@ -609,10 +606,9 @@ end)
 -- ============================================
 -- СИСТЕМА БИНДОВ (ПКМ + клавиша БЕЗ ДИАЛОГА)
 -- ============================================
-local bindWaiting = nil  -- Функция, ожидающая бинд
+local bindWaiting = nil
 
 local function bindFunction(key, func)
-    -- Удаляем старый бинд на эту клавишу
     if binds[key] then
         binds[key] = nil
     end
@@ -631,12 +627,10 @@ local function unbindFunction(func)
     return false
 end
 
--- Обработчик для биндов (без диалогов)
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if bindWaiting then
         if input.KeyCode == Enum.KeyCode.Delete then
-            -- Снимаем бинд у текущей функции
             unbindFunction(bindWaiting)
             bindWaiting = nil
         elseif input.KeyCode ~= Enum.KeyCode.Unknown then
@@ -670,7 +664,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v6.6"
+Title.Text = "FLAGMAN XENO v6.7"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -732,7 +726,6 @@ local function createButton(text, callback)
         btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     end)
     
-    -- БИНД: ПРАВАЯ КНОПКА МЫШИ (без диалога)
     btn.MouseButton2Click:Connect(function()
         bindWaiting = callback
         print("[Xeno] ⏳ Ожидание клавиши для бинда... (Delete для снятия)")
@@ -886,8 +879,8 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
 end)
 
 print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v6.6 ✦")
+print("  ✦ FLAGMAN XENO v6.7 ✦")
 print("  INSERT - меню | X - Spider")
 print("  БИНДЫ: ПКМ на кнопке -> нажать клавишу")
 print("  DELETE - снять бинд с функции")
-print("  INFINITY JUMP - работает
+print("═══════════════════════════════════════")
