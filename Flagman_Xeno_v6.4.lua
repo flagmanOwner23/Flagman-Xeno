@@ -1,6 +1,5 @@
--- Flagman Xeno v8.1 (UNBANG)
--- Добавлена команда unbang для остановки преследования
--- IY интерфейс, Fly/Jerk/Bang как в IY
+-- Flagman Xeno v9.0 (DUAL UI)
+-- Центральное меню + Infinite Yield (its flagman) справа снизу
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -57,7 +56,7 @@ local binds = {}
 local bindWaiting = nil
 
 -- ============================================
--- FLY (IY)
+-- FLY
 -- ============================================
 local function updateFly()
     if not flyActive or not RootPart then return end
@@ -139,7 +138,7 @@ UserInputService.InputEnded:Connect(function(inp, gp)
 end)
 
 -- ============================================
--- JERK (IY)
+-- JERK
 -- ============================================
 local function jerk()
     if not RootPart then return end
@@ -172,7 +171,7 @@ local function jerk()
 end
 
 -- ============================================
--- BANG / UNBANG (IY)
+-- BANG / UNBANG
 -- ============================================
 local function stopBang()
     bangActive = false
@@ -518,7 +517,7 @@ UserInputService.InputBegan:Connect(function(inp, gp)
 end)
 
 -- ============================================
--- IY ИНТЕРФЕЙС
+-- ЦЕНТРАЛЬНОЕ МЕНЮ
 -- ============================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FlagmanXenoUI"
@@ -526,9 +525,9 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 400, 0, 500)
-MainFrame.Position = UDim2.new(1, -420, 1, -520)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+MainFrame.Size = UDim2.new(0, 500, 0, 600)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -300)  -- ПО ЦЕНТРУ
+MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 2
 MainFrame.BorderColor3 = Color3.fromRGB(255, 80, 80)
@@ -537,19 +536,19 @@ MainFrame.Parent = ScreenGui
 MainFrame.Visible = false
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v8.1"
+Title.Text = "FLAGMAN XENO v9.0"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
 Title.Parent = MainFrame
 
 local SearchBox = Instance.new("TextBox")
-SearchBox.Size = UDim2.new(1, -10, 0, 35)
-SearchBox.Position = UDim2.new(0, 5, 0, 45)
+SearchBox.Size = UDim2.new(1, -20, 0, 35)
+SearchBox.Position = UDim2.new(0, 10, 0, 55)
 SearchBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 SearchBox.PlaceholderText = "🔍 Поиск функции..."
@@ -563,8 +562,8 @@ SearchBox.BorderColor3 = Color3.fromRGB(255, 80, 80)
 SearchBox.Parent = MainFrame
 
 local ButtonContainer = Instance.new("ScrollingFrame")
-ButtonContainer.Size = UDim2.new(1, -10, 1, -100)
-ButtonContainer.Position = UDim2.new(0, 5, 0, 85)
+ButtonContainer.Size = UDim2.new(1, -20, 1, -110)
+ButtonContainer.Position = UDim2.new(0, 10, 0, 95)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
 ButtonContainer.ScrollBarThickness = 6
@@ -579,7 +578,7 @@ local allButtons = {}
 
 local function createButton(text, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 35)
+    btn.Size = UDim2.new(1, 0, 0, 40)
     btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     btn.Text = text
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -623,7 +622,7 @@ local function updateSearch(query)
             data.button.Visible = false
         end
     end
-    ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, count * 41 + 20)
+    ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, count * 46 + 20)
 end
 
 SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
@@ -631,7 +630,7 @@ SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
 end)
 
 -- ============================================
--- КНОПКИ МЕНЮ
+-- КНОПКИ ЦЕНТРАЛЬНОГО МЕНЮ
 -- ============================================
 createButton("Fly (WASD + Space/Shift)", toggleFly)
 createButton("Fly Speed 25", function() setFlySpeed(25) end)
@@ -671,7 +670,6 @@ createButton("Bang (преследование)", function()
     end)
 end)
 
--- КНОПКА UNBANG (остановка преследования)
 createButton("Unbang (остановить преследование)", function()
     stopBang()
 end)
@@ -729,60 +727,127 @@ createButton("Clear Parts", function()
 end)
 
 task.wait(0.1)
-ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 41 + 20)
+ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 46 + 20)
 
 -- ============================================
--- УПРАВЛЕНИЕ
+-- INFINITE YIELD (its flagman) СПРАВА СНИЗУ
 -- ============================================
-UserInputService.InputBegan:Connect(function(inp, gp)
-    if gp then return end
-    if inp.KeyCode == Enum.KeyCode.Insert then
-        MainFrame.Visible = not MainFrame.Visible
-        if MainFrame.Visible then updateSearch("") end
+local IYFrame = Instance.new("Frame")
+IYFrame.Size = UDim2.new(0, 300, 0, 400)
+IYFrame.Position = UDim2.new(1, -320, 1, -420)  -- Справа снизу
+IYFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+IYFrame.BackgroundTransparency = 0.1
+IYFrame.BorderSizePixel = 2
+IYFrame.BorderColor3 = Color3.fromRGB(100, 200, 255)
+IYFrame.ClipsDescendants = true
+IYFrame.Parent = ScreenGui
+IYFrame.Visible = false
+
+local IYTitle = Instance.new("TextLabel")
+IYTitle.Size = UDim2.new(1, 0, 0, 35)
+IYTitle.Position = UDim2.new(0, 0, 0, 0)
+IYTitle.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+IYTitle.BackgroundTransparency = 0.5
+IYTitle.Text = "its flagman"
+IYTitle.TextColor3 = Color3.fromRGB(100, 200, 255)
+IYTitle.TextScaled = true
+IYTitle.Font = Enum.Font.GothamBold
+IYTitle.Parent = IYFrame
+
+local IYSearch = Instance.new("TextBox")
+IYSearch.Size = UDim2.new(1, -10, 0, 30)
+IYSearch.Position = UDim2.new(0, 5, 0, 40)
+IYSearch.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+IYSearch.TextColor3 = Color3.fromRGB(255, 255, 255)
+IYSearch.PlaceholderText = "🔍 Поиск..."
+IYSearch.PlaceholderColor3 = Color3.fromRGB(150, 150, 200)
+IYSearch.Text = ""
+IYSearch.ClearTextOnFocus = false
+IYSearch.Font = Enum.Font.GothamMedium
+IYSearch.TextScaled = true
+IYSearch.BorderSizePixel = 1
+IYSearch.BorderColor3 = Color3.fromRGB(100, 200, 255)
+IYSearch.Parent = IYFrame
+
+local IYContainer = Instance.new("ScrollingFrame")
+IYContainer.Size = UDim2.new(1, -10, 1, -90)
+IYContainer.Position = UDim2.new(0, 5, 0, 75)
+IYContainer.BackgroundTransparency = 1
+IYContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+IYContainer.ScrollBarThickness = 6
+IYContainer.Parent = IYFrame
+
+local IYLayout = Instance.new("UIListLayout")
+IYLayout.Padding = UDim.new(0, 4)
+IYLayout.SortOrder = Enum.SortOrder.LayoutOrder
+IYLayout.Parent = IYContainer
+
+local iyButtons = {}
+
+local function createIYButton(text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 30)
+    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextScaled = true
+    btn.Font = Enum.Font.GothamMedium
+    btn.BorderSizePixel = 1
+    btn.BorderColor3 = Color3.fromRGB(100, 200, 255)
+    btn.Parent = IYContainer
+    
+    btn.MouseEnter:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+    end)
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    end)
+    
+    btn.MouseButton1Click:Connect(function()
+        callback()
+        btn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+        task.wait(0.1)
+        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    end)
+    
+    table.insert(iyButtons, {button = btn, text = text:lower()})
+    return btn
+end
+
+local function updateIYSearch(query)
+    query = query:lower()
+    local count = 0
+    for _, data in ipairs(iyButtons) do
+        if query == "" or data.text:find(query, 1, true) then
+            data.button.Visible = true
+            count = count + 1
+        else
+            data.button.Visible = false
+        end
     end
+    IYContainer.CanvasSize = UDim2.new(0, 0, 0, count * 34 + 20)
+end
+
+IYSearch:GetPropertyChangedSignal("Text"):Connect(function()
+    updateIYSearch(IYSearch.Text)
 end)
 
-UserInputService.InputBegan:Connect(function(inp, gp)
-    if gp then return end
-    if inp.KeyCode == Enum.KeyCode.X then toggleSpider() end
-end)
-
--- ============================================
--- СБРОС ПРИ ПЕРЕРОЖДЕНИИ
--- ============================================
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-    Character = newChar
-    Humanoid = Character:WaitForChild("Humanoid")
-    RootPart = Character:WaitForChild("HumanoidRootPart")
-    
-    flyActive = false
-    noclipActive = false
-    godActive = false
-    spiderActive = false
-    scaffoldActive = false
-    espActive = false
-    aimbotActive = false
-    infinityJumpActive = false
-    bangActive = false
-    
-    if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
-    if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
-    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-    if noclipPart then noclipPart:Destroy() noclipPart = nil end
-    if spiderConnection then spiderConnection:Disconnect() spiderConnection = nil end
-    if scaffoldConnection then scaffoldConnection:Disconnect() scaffoldConnection = nil end
-    if infinityJumpConnection then infinityJumpConnection:Disconnect() infinityJumpConnection = nil end
-    if bangConnection then bangConnection:Disconnect() bangConnection = nil end
-    
-    Humanoid.PlatformStand = false
-    print("[Xeno] Character reset")
-end)
-
-print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v8.1 ✦")
-print("  INSERT - открыть меню (справа снизу)")
-print("  X - Spider")
-print("  БИНДЫ: ПКМ на кнопке -> нажать клавишу")
-print("  DELETE - снять бинд")
-print("  UNBANG - остановить преследование")
-print("═══════════════════════════════════════")
+-- КНОПКИ "its flagman"
+createIYButton("Fly", toggleFly)
+createIYButton("Fly Speed 50", function() setFlySpeed(50) end)
+createIYButton("Fly Speed 100", function() setFlySpeed(100) end)
+createIYButton("Fly Speed 200", function() setFlySpeed(200) end)
+createIYButton("Noclip", toggleNoclip)
+createIYButton("Godmode", toggleGod)
+createIYButton("Spider", toggleSpider)
+createIYButton("Scaffold", toggleScaffold)
+createIYButton("ESP", toggleESP)
+createIYButton("Aimbot", toggleAimbot)
+createIYButton("Infinity Jump", toggleInfinityJump)
+createIYButton("Jerk", jerk)
+createIYButton("Bang (преследование)", function()
+    local d = Instance.new("TextBox")
+    d.Size = UDim2.new(0, 200, 0, 30)
+    d.Position = UDim2.new(0.5, -100, 0.5, -15)
+    d.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    d.Text
