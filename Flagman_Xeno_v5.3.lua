@@ -37,7 +37,7 @@ local spiderConnection = nil
 local scaffoldConnection = nil
 local espObjects = {}
 local espConnections = {}
-local binds = {}  -- {[KeyCode] = function}
+local binds = {}
 
 -- ============================================
 -- НОВЫЙ ПОЛЁТ (зависание + WASD + Space/Shift)
