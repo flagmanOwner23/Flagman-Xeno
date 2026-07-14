@@ -1,11 +1,9 @@
--- Flagman Xeno v5.4 (Insert Menu + NEW BINDS)
--- Меню по Insert, бинды через колёсико + клавиша
+-- Flagman Xeno v5.5 (Fly x2 + Bang + FIXED BINDS)
 -- Автор: good
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
 local Camera = workspace.CurrentCamera
@@ -18,15 +16,18 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 local state = {
     fly = false,
+    fly2 = false,
     noclip = false,
     god = false,
     spider = false,
     scaffold = false,
     esp = false,
     aimbot = false,
+    bang = false,
     speed = 1,
     jump = 1,
     flySpeed = 50,
+    fly2Speed = 100,
     aimbotFOV = 200
 }
 
@@ -38,9 +39,12 @@ local scaffoldConnection = nil
 local espObjects = {}
 local espConnections = {}
 local binds = {}
+local bangTarget = nil
+local bangConnection = nil
+local bangPingPong = false
 
 -- ============================================
--- НОВЫЙ ПОЛЁТ (зависание + WASD + Space/Shift)
+-- ПОЛЁТ (обычный)
 -- ============================================
 local flyConnection = nil
 local flyKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
@@ -68,6 +72,7 @@ local function updateFly()
 end
 
 local function toggleFly()
+    if state.fly2 then toggleFly2() end
     state.fly = not state.fly
     if state.fly then
         if bodyVelocity then bodyVelocity:Destroy() end
@@ -86,7 +91,7 @@ local function toggleFly()
         
         flyConnection = RunService.Heartbeat:Connect(updateFly)
         Humanoid.PlatformStand = true
-        print("[Xeno] Fly ON (WASD + Space/Shift)")
+        print("[Xeno] Fly ON (Speed: " .. state.flySpeed .. ")")
     else
         if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
         if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
@@ -96,25 +101,183 @@ local function toggleFly()
     end
 end
 
+-- ============================================
+-- ПОЛЁТ X2 (в два раза быстрее)
+-- ============================================
+local fly2Connection = nil
+local fly2Keys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
+
+local function updateFly2()
+    if not state.fly2 or not RootPart then return end
+    local direction = Vector3.new(0, 0, 0)
+    local camCF = Camera.CFrame
+    local forward = camCF.LookVector
+    local right = camCF.RightVector
+    
+    if fly2Keys.W then direction = direction + forward end
+    if fly2Keys.S then direction = direction - forward end
+    if fly2Keys.A then direction = direction - right end
+    if fly2Keys.D then direction = direction + right end
+    if fly2Keys.Space then direction = direction + Vector3.new(0, 1, 0) end
+    if fly2Keys.Shift then direction = direction - Vector3.new(0, 1, 0) end
+    
+    if direction.Magnitude > 0 then
+        direction = direction.Unit * state.fly2Speed
+    end
+    if bodyVelocity then
+        bodyVelocity.Velocity = direction
+    end
+end
+
+local function toggleFly2()
+    if state.fly then toggleFly() end
+    state.fly2 = not state.fly2
+    if state.fly2 then
+        if bodyVelocity then bodyVelocity:Destroy() end
+        if bodyGyro then bodyGyro:Destroy() end
+        if fly2Connection then fly2Connection:Disconnect() end
+        
+        bodyVelocity = Instance.new("BodyVelocity")
+        bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 100000
+        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+        bodyVelocity.Parent = RootPart
+        
+        bodyGyro = Instance.new("BodyGyro")
+        bodyGyro.MaxTorque = Vector3.new(1, 1, 1) * 100000
+        bodyGyro.CFrame = RootPart.CFrame
+        bodyGyro.Parent = RootPart
+        
+        fly2Connection = RunService.Heartbeat:Connect(updateFly2)
+        Humanoid.PlatformStand = true
+        print("[Xeno] Fly X2 ON (Speed: " .. state.fly2Speed .. ")")
+    else
+        if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+        if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+        if fly2Connection then fly2Connection:Disconnect() fly2Connection = nil end
+        Humanoid.PlatformStand = false
+        print("[Xeno] Fly X2 OFF")
+    end
+end
+
+-- Клавиши для Fly и Fly2
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
-    if input.KeyCode == Enum.KeyCode.W then flyKeys.W = true end
-    if input.KeyCode == Enum.KeyCode.A then flyKeys.A = true end
-    if input.KeyCode == Enum.KeyCode.S then flyKeys.S = true end
-    if input.KeyCode == Enum.KeyCode.D then flyKeys.D = true end
-    if input.KeyCode == Enum.KeyCode.Space then flyKeys.Space = true end
-    if input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = true end
+    if state.fly then
+        if input.KeyCode == Enum.KeyCode.W then flyKeys.W = true end
+        if input.KeyCode == Enum.KeyCode.A then flyKeys.A = true end
+        if input.KeyCode == Enum.KeyCode.S then flyKeys.S = true end
+        if input.KeyCode == Enum.KeyCode.D then flyKeys.D = true end
+        if input.KeyCode == Enum.KeyCode.Space then flyKeys.Space = true end
+        if input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = true end
+    end
+    if state.fly2 then
+        if input.KeyCode == Enum.KeyCode.W then fly2Keys.W = true end
+        if input.KeyCode == Enum.KeyCode.A then fly2Keys.A = true end
+        if input.KeyCode == Enum.KeyCode.S then fly2Keys.S = true end
+        if input.KeyCode == Enum.KeyCode.D then fly2Keys.D = true end
+        if input.KeyCode == Enum.KeyCode.Space then fly2Keys.Space = true end
+        if input.KeyCode == Enum.KeyCode.LeftShift then fly2Keys.Shift = true end
+    end
 end)
 
 UserInputService.InputEnded:Connect(function(input, gp)
     if gp then return end
-    if input.KeyCode == Enum.KeyCode.W then flyKeys.W = false end
-    if input.KeyCode == Enum.KeyCode.A then flyKeys.A = false end
-    if input.KeyCode == Enum.KeyCode.S then flyKeys.S = false end
-    if input.KeyCode == Enum.KeyCode.D then flyKeys.D = false end
-    if input.KeyCode == Enum.KeyCode.Space then flyKeys.Space = false end
-    if input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = false end
+    if state.fly then
+        if input.KeyCode == Enum.KeyCode.W then flyKeys.W = false end
+        if input.KeyCode == Enum.KeyCode.A then flyKeys.A = false end
+        if input.KeyCode == Enum.KeyCode.S then flyKeys.S = false end
+        if input.KeyCode == Enum.KeyCode.D then flyKeys.D = false end
+        if input.KeyCode == Enum.KeyCode.Space then flyKeys.Space = false end
+        if input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = false end
+    end
+    if state.fly2 then
+        if input.KeyCode == Enum.KeyCode.W then fly2Keys.W = false end
+        if input.KeyCode == Enum.KeyCode.A then fly2Keys.A = false end
+        if input.KeyCode == Enum.KeyCode.S then fly2Keys.S = false end
+        if input.KeyCode == Enum.KeyCode.D then fly2Keys.D = false end
+        if input.KeyCode == Enum.KeyCode.Space then fly2Keys.Space = false end
+        if input.KeyCode == Enum.KeyCode.LeftShift then fly2Keys.Shift = false end
+    end
 end)
+
+-- ============================================
+-- BANG (преследование игрока)
+-- ============================================
+local function startBang(targetName)
+    if bangConnection then
+        bangConnection:Disconnect()
+        bangConnection = nil
+    end
+    if not targetName or targetName == "" then
+        print("[Xeno] Bang: ник не указан")
+        return
+    end
+    
+    local target = nil
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name:lower():find(targetName:lower()) then
+            target = player
+            break
+        end
+    end
+    
+    if not target then
+        print("[Xeno] Bang: игрок не найден: " .. targetName)
+        return
+    end
+    
+    bangTarget = target
+    state.bang = true
+    print("[Xeno] Bang: преследую " .. target.Name)
+    
+    -- Включаем полёт если выключен
+    if not state.fly and not state.fly2 then
+        toggleFly()
+    end
+    
+    local moveDirection = 1
+    bangConnection = RunService.Heartbeat:Connect(function()
+        if not state.bang or not bangTarget or not bangTarget.Character or not RootPart then
+            return
+        end
+        
+        local targetRoot = bangTarget.Character:FindFirstChild("HumanoidRootPart")
+        if not targetRoot then return end
+        
+        local distance = (RootPart.Position - targetRoot.Position).Magnitude
+        
+        if distance > 5 then
+            -- Летим к цели
+            local direction = (targetRoot.Position - RootPart.Position).Unit
+            if bodyVelocity then
+                bodyVelocity.Velocity = direction * state.flySpeed
+            end
+        else
+            -- Движения вперёд-назад (пинг-понг)
+            local offset = Vector3.new(0, 0, 2 * moveDirection)
+            local targetPos = targetRoot.Position + offset
+            local dir = (targetPos - RootPart.Position).Unit
+            if bodyVelocity then
+                bodyVelocity.Velocity = dir * state.flySpeed * 0.5
+            end
+            moveDirection = moveDirection * -1
+            task.wait(0.5)
+        end
+    end)
+end
+
+local function toggleBang(targetName)
+    if state.bang then
+        state.bang = false
+        if bangConnection then
+            bangConnection:Disconnect()
+            bangConnection = nil
+        end
+        print("[Xeno] Bang: остановлен")
+    else
+        startBang(targetName or "")
+    end
+end
 
 -- ============================================
 -- ОСТАЛЬНЫЕ ФУНКЦИИ
@@ -368,8 +531,16 @@ local function toggleAimbot()
     print("[Xeno] Aimbot " .. (state.aimbot and "ON" or "OFF"))
 end
 
+-- Обработка биндов (клавиши)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if binds[input.KeyCode] then
+        binds[input.KeyCode]()
+    end
+end)
+
 -- ============================================
--- МЕНЮ (простое, только названия)
+-- МЕНЮ
 -- ============================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FlagmanXenoUI"
@@ -377,8 +548,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 500, 0, 600)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -300)
+MainFrame.Size = UDim2.new(0, 500, 0, 650)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -325)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 2
@@ -392,7 +563,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v5.4"
+Title.Text = "FLAGMAN XENO v5.5"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -429,7 +600,7 @@ UIListLayout.Parent = ButtonContainer
 local allButtons = {}
 
 -- ============================================
--- НОВАЯ СИСТЕМА БИНДОВ (колёсико + клавиша)
+-- НОРМАЛЬНАЯ СИСТЕМА БИНДОВ (без багов)
 -- ============================================
 local function createButton(text, callback)
     local btn = Instance.new("TextButton")
@@ -453,32 +624,34 @@ local function createButton(text, callback)
     btn.MouseButton1Click:Connect(function()
         callback()
         btn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-        wait(0.1)
+        task.wait(0.1)
         btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     end)
     
-    -- НОВЫЙ БИНД: нажатие на колёсико (средняя кнопка)
+    -- БИНД: нажатие колёсика → ввод клавиши
     btn.MouseButton2Click:Connect(function()
         local dialog = Instance.new("TextBox")
         dialog.Size = UDim2.new(0, 300, 0, 35)
         dialog.Position = UDim2.new(0.5, -150, 0.5, -17)
         dialog.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
         dialog.TextColor3 = Color3.fromRGB(255, 255, 255)
-        dialog.PlaceholderText = "Нажмите любую клавишу для бинда..."
+        dialog.PlaceholderText = "Нажмите клавишу для бинда..."
         dialog.ClearTextOnFocus = false
         dialog.Font = Enum.Font.GothamMedium
         dialog.TextScaled = true
         dialog.Parent = MainFrame
         dialog:CaptureFocus()
         
-        local connection
+        local connection = nil
         connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if gameProcessed then return end
             if input.KeyCode ~= Enum.KeyCode.Unknown then
+                -- Очищаем старый бинд на эту клавишу
+                binds[input.KeyCode] = nil
                 binds[input.KeyCode] = callback
                 print("[Xeno] ✅ Бинд: " .. text .. " -> " .. input.KeyCode.Name)
                 dialog:Destroy()
-                connection:Disconnect()
+                if connection then connection:Disconnect() end
             end
         end)
         
@@ -518,12 +691,35 @@ end)
 -- КНОПКИ МЕНЮ
 -- ============================================
 createButton("Fly (WASD + Space/Shift)", toggleFly)
+createButton("Fly X2 (WASD + Space/Shift)", toggleFly2)
 createButton("Noclip", toggleNoclip)
 createButton("Godmode", toggleGod)
 createButton("Spider [X]", toggleSpider)
 createButton("Scaffold", toggleScaffold)
 createButton("ESP", toggleESP)
 createButton("Aimbot", toggleAimbot)
+
+-- BANG (с вводом ника)
+createButton("Bang (преследование)", function()
+    local dialog = Instance.new("TextBox")
+    dialog.Size = UDim2.new(0, 250, 0, 35)
+    dialog.Position = UDim2.new(0.5, -125, 0.5, -17)
+    dialog.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    dialog.TextColor3 = Color3.fromRGB(255, 255, 255)
+    dialog.PlaceholderText = "Введите ник игрока для Bang"
+    dialog.ClearTextOnFocus = false
+    dialog.Font = Enum.Font.GothamMedium
+    dialog.TextScaled = true
+    dialog.Parent = MainFrame
+    dialog:CaptureFocus()
+    dialog.FocusLost:Connect(function(enterPressed)
+        if enterPressed and dialog.Text ~= "" then
+            toggleBang(dialog.Text)
+        end
+        dialog:Destroy()
+    end)
+end)
+
 createButton("Speed x2", function() setSpeed(2) end)
 createButton("Speed x3", function() setSpeed(3) end)
 createButton("Jump x2", function() setJump(2) end)
@@ -560,22 +756,14 @@ createButton("Teleport", function()
     end)
 end)
 
-wait(0.1)
+task.wait(0.1)
 ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 46 + 20)
 
 -- ============================================
--- ОБРАБОТКА БИНДОВ (клавиши)
+-- УПРАВЛЕНИЕ
 -- ============================================
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if binds[input.KeyCode] then
-        binds[input.KeyCode]()
-    end
-end)
 
--- ============================================
--- УПРАВЛЕНИЕ (Insert для меню)
--- ============================================
+-- Открытие по Insert
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.Insert then
@@ -603,17 +791,21 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     RootPart = Character:WaitForChild("HumanoidRootPart")
     
     state.fly = false
+    state.fly2 = false
     state.noclip = false
     state.god = false
     state.spider = false
     state.scaffold = false
+    state.bang = false
     
     if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
     if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
     if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+    if fly2Connection then fly2Connection:Disconnect() fly2Connection = nil end
     if noclipPart then noclipPart:Destroy() noclipPart = nil end
     if spiderConnection then spiderConnection:Disconnect() spiderConnection = nil end
     if scaffoldConnection then scaffoldConnection:Disconnect() scaffoldConnection = nil end
+    if bangConnection then bangConnection:Disconnect() bangConnection = nil end
     
     Humanoid.PlatformStand = false
     setSpeed(1)
@@ -623,8 +815,9 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
 end)
 
 print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v5.4 ✦")
+print("  ✦ FLAGMAN XENO v5.5 ✦")
 print("  INSERT - меню | X - Spider")
-print("  FLY: WASD + Space(вверх) + Shift(вниз)")
-print("  БИНДЫ: нажмите колёсико на кнопке -> нажмите клавишу")
+print("  FLY X2 - в 2 раза быстрее")
+print("  BANG - преследование игрока с пинг-понгом")
+print("  БИНДЫ: колёсико на кнопке -> клавиша")
 print("═══════════════════════════════════════")
