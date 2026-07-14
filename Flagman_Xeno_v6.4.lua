@@ -1,6 +1,5 @@
--- Flagman Xeno v7.3 (FULL FIX)
--- Fly с регулировкой скорости, Bang и Jerk как в Infinite Yield
--- Исправлены все ошибки, работает через Xeno
+-- Flagman Xeno v7.4 (STABLE)
+-- Работает в Xeno без ошибок
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -9,118 +8,86 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
-local Camera = workspace.CurrentCamera
+
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
+local Camera = workspace.CurrentCamera
 
--- Ожидание загрузки персонажа
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
 
-local state = {
-    fly = false,
-    fly2 = false,
-    noclip = false,
-    god = false,
-    spider = false,
-    scaffold = false,
-    esp = false,
-    aimbot = false,
-    bang = false,
-    jerk = false,
-    infinityJump = false,
-    speed = 1,
-    jump = 1,
-    flySpeed = 50,
-    fly2Speed = 100,
-    aimbotFOV = 200
-}
-
+-- ============================================
+-- СОСТОЯНИЯ
+-- ============================================
+local flyActive = false
+local flySpeed = 50
+local flyConnection = nil
 local bodyVelocity = nil
 local bodyGyro = nil
+local flyKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
+
+local noclipActive = false
 local noclipPart = nil
+
+local godActive = false
+
+local spiderActive = false
 local spiderConnection = nil
+
+local scaffoldActive = false
 local scaffoldConnection = nil
+
+local espActive = false
 local espObjects = {}
 local espConnections = {}
-local binds = {}
+
+local aimbotActive = false
+
+local infinityJumpActive = false
 local infinityJumpConnection = nil
-local bangConnection = nil
+
 local bangActive = false
 local bangTarget = nil
-local bangPingPong = 1
-local flyConnection = nil
-local flyKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
-local fly2Connection = nil
-local fly2Keys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
+local bangConnection = nil
+
+local binds = {}
+local bindWaiting = nil
 
 -- ============================================
--- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
--- ============================================
-local function clearBodyVelocity()
-    if bodyVelocity then
-        bodyVelocity:Destroy()
-        bodyVelocity = nil
-    end
-    if bodyGyro then
-        bodyGyro:Destroy()
-        bodyGyro = nil
-    end
-end
-
-local function stopFly()
-    clearBodyVelocity()
-    if flyConnection then
-        flyConnection:Disconnect()
-        flyConnection = nil
-    end
-    if fly2Connection then
-        fly2Connection:Disconnect()
-        fly2Connection = nil
-    end
-    if Humanoid then
-        Humanoid.PlatformStand = false
-    end
-    state.fly = false
-    state.fly2 = false
-end
-
--- ============================================
--- ПОЛЁТ (IY STYLE) с регулировкой скорости
+-- ПОЛЁТ
 -- ============================================
 local function updateFly()
-    if not state.fly or not RootPart then return end
-    local direction = Vector3.new(0, 0, 0)
-    local camCF = Camera.CFrame
-    local forward = camCF.LookVector
-    local right = camCF.RightVector
+    if not flyActive or not RootPart then return end
+    local dir = Vector3.new(0, 0, 0)
+    local cf = Camera.CFrame
+    local forward = cf.LookVector
+    local right = cf.RightVector
     
-    if flyKeys.W then direction = direction + forward end
-    if flyKeys.S then direction = direction - forward end
-    if flyKeys.A then direction = direction - right end
-    if flyKeys.D then direction = direction + right end
-    if flyKeys.Space then direction = direction + Vector3.new(0, 1, 0) end
-    if flyKeys.Shift then direction = direction - Vector3.new(0, 1, 0) end
+    if flyKeys.W then dir = dir + forward end
+    if flyKeys.S then dir = dir - forward end
+    if flyKeys.A then dir = dir - right end
+    if flyKeys.D then dir = dir + right end
+    if flyKeys.Space then dir = dir + Vector3.new(0, 1, 0) end
+    if flyKeys.Shift then dir = dir - Vector3.new(0, 1, 0) end
     
-    if direction.Magnitude > 0 then
-        direction = direction.Unit * state.flySpeed
+    if dir.Magnitude > 0 then
+        dir = dir.Unit * flySpeed
     end
     if bodyVelocity then
-        bodyVelocity.Velocity = direction
+        bodyVelocity.Velocity = dir
     end
 end
 
 local function toggleFly()
-    if state.fly2 then toggleFly2() end
-    state.fly = not state.fly
-    if state.fly then
-        clearBodyVelocity()
+    flyActive = not flyActive
+    if flyActive then
+        if bodyVelocity then bodyVelocity:Destroy() end
+        if bodyGyro then bodyGyro:Destroy() end
         if flyConnection then flyConnection:Disconnect() end
         
         bodyVelocity = Instance.new("BodyVelocity")
         bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 100000
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
         bodyVelocity.Parent = RootPart
         
         bodyGyro = Instance.new("BodyGyro")
@@ -129,119 +96,54 @@ local function toggleFly()
         bodyGyro.Parent = RootPart
         
         flyConnection = RunService.Heartbeat:Connect(updateFly)
-        if Humanoid then Humanoid.PlatformStand = true end
-        print("[Xeno] Fly ON (Speed: " .. state.flySpeed .. ")")
+        Humanoid.PlatformStand = true
+        print("[Xeno] Fly ON (Speed: " .. flySpeed .. ")")
     else
-        stopFly()
+        if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+        if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+        if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+        Humanoid.PlatformStand = false
         print("[Xeno] Fly OFF")
     end
 end
 
-local function setFlySpeed(value)
-    state.flySpeed = value
-    print("[Xeno] Fly Speed: " .. value)
+local function setFlySpeed(val)
+    flySpeed = val
+    print("[Xeno] Fly Speed: " .. flySpeed)
 end
 
--- ============================================
--- ПОЛЁТ X2
--- ============================================
-local function updateFly2()
-    if not state.fly2 or not RootPart then return end
-    local direction = Vector3.new(0, 0, 0)
-    local camCF = Camera.CFrame
-    local forward = camCF.LookVector
-    local right = camCF.RightVector
-    
-    if fly2Keys.W then direction = direction + forward end
-    if fly2Keys.S then direction = direction - forward end
-    if fly2Keys.A then direction = direction - right end
-    if fly2Keys.D then direction = direction + right end
-    if fly2Keys.Space then direction = direction + Vector3.new(0, 1, 0) end
-    if fly2Keys.Shift then direction = direction - Vector3.new(0, 1, 0) end
-    
-    if direction.Magnitude > 0 then
-        direction = direction.Unit * state.fly2Speed
-    end
-    if bodyVelocity then
-        bodyVelocity.Velocity = direction
-    end
-end
-
-local function toggleFly2()
-    if state.fly then toggleFly() end
-    state.fly2 = not state.fly2
-    if state.fly2 then
-        clearBodyVelocity()
-        if fly2Connection then fly2Connection:Disconnect() end
-        
-        bodyVelocity = Instance.new("BodyVelocity")
-        bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 100000
-        bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        bodyVelocity.Parent = RootPart
-        
-        bodyGyro = Instance.new("BodyGyro")
-        bodyGyro.MaxTorque = Vector3.new(1, 1, 1) * 100000
-        bodyGyro.CFrame = RootPart.CFrame
-        bodyGyro.Parent = RootPart
-        
-        fly2Connection = RunService.Heartbeat:Connect(updateFly2)
-        if Humanoid then Humanoid.PlatformStand = true end
-        print("[Xeno] Fly X2 ON (Speed: " .. state.fly2Speed .. ")")
-    else
-        stopFly()
-        print("[Xeno] Fly X2 OFF")
-    end
-end
-
-UserInputService.InputBegan:Connect(function(input, gp)
+-- Клавиши для полёта
+UserInputService.InputBegan:Connect(function(inp, gp)
     if gp then return end
-    if state.fly then
-        if input.KeyCode == Enum.KeyCode.W then flyKeys.W = true end
-        if input.KeyCode == Enum.KeyCode.A then flyKeys.A = true end
-        if input.KeyCode == Enum.KeyCode.S then flyKeys.S = true end
-        if input.KeyCode == Enum.KeyCode.D then flyKeys.D = true end
-        if input.KeyCode == Enum.KeyCode.Space then flyKeys.Space = true end
-        if input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = true end
-    end
-    if state.fly2 then
-        if input.KeyCode == Enum.KeyCode.W then fly2Keys.W = true end
-        if input.KeyCode == Enum.KeyCode.A then fly2Keys.A = true end
-        if input.KeyCode == Enum.KeyCode.S then fly2Keys.S = true end
-        if input.KeyCode == Enum.KeyCode.D then fly2Keys.D = true end
-        if input.KeyCode == Enum.KeyCode.Space then fly2Keys.Space = true end
-        if input.KeyCode == Enum.KeyCode.LeftShift then fly2Keys.Shift = true end
+    if flyActive then
+        if inp.KeyCode == Enum.KeyCode.W then flyKeys.W = true end
+        if inp.KeyCode == Enum.KeyCode.A then flyKeys.A = true end
+        if inp.KeyCode == Enum.KeyCode.S then flyKeys.S = true end
+        if inp.KeyCode == Enum.KeyCode.D then flyKeys.D = true end
+        if inp.KeyCode == Enum.KeyCode.Space then flyKeys.Space = true end
+        if inp.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = true end
     end
 end)
 
-UserInputService.InputEnded:Connect(function(input, gp)
+UserInputService.InputEnded:Connect(function(inp, gp)
     if gp then return end
-    if state.fly then
-        if input.KeyCode == Enum.KeyCode.W then flyKeys.W = false end
-        if input.KeyCode == Enum.KeyCode.A then flyKeys.A = false end
-        if input.KeyCode == Enum.KeyCode.S then flyKeys.S = false end
-        if input.KeyCode == Enum.KeyCode.D then flyKeys.D = false end
-        if input.KeyCode == Enum.KeyCode.Space then flyKeys.Space = false end
-        if input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = false end
-    end
-    if state.fly2 then
-        if input.KeyCode == Enum.KeyCode.W then fly2Keys.W = false end
-        if input.KeyCode == Enum.KeyCode.A then fly2Keys.A = false end
-        if input.KeyCode == Enum.KeyCode.S then fly2Keys.S = false end
-        if input.KeyCode == Enum.KeyCode.D then fly2Keys.D = false end
-        if input.KeyCode == Enum.KeyCode.Space then fly2Keys.Space = false end
-        if input.KeyCode == Enum.KeyCode.LeftShift then fly2Keys.Shift = false end
+    if flyActive then
+        if inp.KeyCode == Enum.KeyCode.W then flyKeys.W = false end
+        if inp.KeyCode == Enum.KeyCode.A then flyKeys.A = false end
+        if inp.KeyCode == Enum.KeyCode.S then flyKeys.S = false end
+        if inp.KeyCode == Enum.KeyCode.D then flyKeys.D = false end
+        if inp.KeyCode == Enum.KeyCode.Space then flyKeys.Space = false end
+        if inp.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = false end
     end
 end)
 
 -- ============================================
--- BANG (ТОЧНАЯ КОПИЯ ИЗ INFINITE YIELD)
+-- БАНГ (рывок)
 -- ============================================
 local function bang()
     if not RootPart then return end
-    local direction = RootPart.CFrame.LookVector
-    local power = 150
-    
-    RootPart.Velocity = direction * power
+    local dir = RootPart.CFrame.LookVector
+    RootPart.Velocity = dir * 150
     
     local flash = Instance.new("Part")
     flash.Size = Vector3.new(2, 2, 2)
@@ -251,77 +153,48 @@ local function bang()
     flash.BrickColor = BrickColor.new("Bright red")
     flash.Material = Enum.Material.Neon
     flash.Transparency = 0.5
-    flash.Parent = workspace
+    flash.Parent = Workspace
     game:GetService("Debris"):AddItem(flash, 0.5)
     TweenService:Create(flash, TweenInfo.new(0.5), {Transparency = 1}):Play()
-    
     print("[Xeno] Bang!")
 end
 
 -- ============================================
--- JERK (ТОЧНАЯ КОПИЯ ИЗ INFINITE YIELD)
+-- ДЖЕРК (рывок с эффектом)
 -- ============================================
 local function jerk()
     if not RootPart then return end
-    local direction = RootPart.CFrame.LookVector
-    local power = 200
-    
-    RootPart.Velocity = direction * power
+    local dir = RootPart.CFrame.LookVector
+    RootPart.Velocity = dir * 200
     
     for i = 1, 10 do
         local trail = Instance.new("Part")
         trail.Size = Vector3.new(0.5, 0.5, 0.5)
-        trail.Position = RootPart.Position - direction * (i * 2)
+        trail.Position = RootPart.Position - dir * (i * 2)
         trail.Anchored = true
         trail.CanCollide = false
         trail.BrickColor = BrickColor.new("Cyan")
         trail.Material = Enum.Material.Neon
         trail.Transparency = 0.8 - (i * 0.07)
-        trail.Parent = workspace
+        trail.Parent = Workspace
         game:GetService("Debris"):AddItem(trail, 2)
         TweenService:Create(trail, TweenInfo.new(2), {Transparency = 1}):Play()
     end
     
     local bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(1, 1, 1) * 50000
-    bv.Velocity = direction * power * 0.3
+    bv.Velocity = dir * 60
     bv.Parent = RootPart
     game:GetService("Debris"):AddItem(bv, 1.5)
-    
     print("[Xeno] Jerk!")
 end
 
 -- ============================================
--- INFINITY JUMP
--- ============================================
-local function toggleInfinityJump()
-    state.infinityJump = not state.infinityJump
-    if state.infinityJump then
-        if infinityJumpConnection then infinityJumpConnection:Disconnect() end
-        infinityJumpConnection = RunService.Heartbeat:Connect(function()
-            if state.infinityJump and Humanoid and Humanoid.Parent then
-                Humanoid.Jump = true
-                task.wait(0.02)
-                Humanoid.Jump = false
-            end
-        end)
-        print("[Xeno] Infinity Jump ON")
-    else
-        if infinityJumpConnection then
-            infinityJumpConnection:Disconnect()
-            infinityJumpConnection = nil
-        end
-        print("[Xeno] Infinity Jump OFF")
-    end
-end
-
--- ============================================
--- BANG ПРЕСЛЕДОВАНИЕ
+-- БАНГ ПРЕСЛЕДОВАНИЕ
 -- ============================================
 local function stopBang()
     bangActive = false
     bangTarget = nil
-    bangPingPong = 1
     if bangConnection then
         bangConnection:Disconnect()
         bangConnection = nil
@@ -329,22 +202,22 @@ local function stopBang()
     print("[Xeno] Bang: остановлен")
 end
 
-local function startBang(targetName)
-    if not targetName or targetName == "" then
+local function startBang(name)
+    if not name or name == "" then
         print("[Xeno] Bang: ник не указан")
         return
     end
     
     local target = nil
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Name:lower():find(targetName:lower()) then
-            target = player
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Name:lower():find(name:lower()) then
+            target = plr
             break
         end
     end
     
     if not target then
-        print("[Xeno] Bang: игрок не найден: " .. targetName)
+        print("[Xeno] Bang: игрок не найден: " .. name)
         return
     end
     
@@ -352,15 +225,12 @@ local function startBang(targetName)
     
     bangTarget = target
     bangActive = true
-    bangPingPong = 1
     print("[Xeno] Bang: преследую " .. target.Name)
     
-    if not state.fly and not state.fly2 then
-        toggleFly()
-    end
+    if not flyActive then toggleFly() end
     
-    local lastMove = 0
-    local cooldown = 0.05
+    local ping = 1
+    local last = 0
     
     bangConnection = RunService.Heartbeat:Connect(function()
         if not bangActive or not bangTarget or not bangTarget.Character then
@@ -369,50 +239,45 @@ local function startBang(targetName)
         end
         
         local targetRoot = bangTarget.Character:FindFirstChild("HumanoidRootPart")
-        if not targetRoot or not RootPart then
-            return
-        end
+        if not targetRoot or not RootPart then return end
         
-        local distance = (RootPart.Position - targetRoot.Position).Magnitude
+        local dist = (RootPart.Position - targetRoot.Position).Magnitude
         
-        if distance > 5 then
+        if dist > 5 then
             local dir = (targetRoot.Position - RootPart.Position).Unit
             if bodyVelocity then
-                bodyVelocity.Velocity = dir * state.flySpeed
+                bodyVelocity.Velocity = dir * flySpeed
             end
         else
             local now = tick()
-            if now - lastMove >= cooldown then
-                local offset = Vector3.new(0, 0, 1 * bangPingPong)
+            if now - last >= 0.05 then
+                local offset = Vector3.new(0, 0, 1 * ping)
                 local targetPos = targetRoot.Position + offset
                 local dir = (targetPos - RootPart.Position).Unit
-                
                 if bodyVelocity then
-                    bodyVelocity.Velocity = dir * state.flySpeed * 0.5
+                    bodyVelocity.Velocity = dir * flySpeed * 0.5
                 end
-                
-                bangPingPong = bangPingPong * -1
-                lastMove = now
+                ping = ping * -1
+                last = now
             end
         end
     end)
 end
 
-local function toggleBang(targetName)
+local function toggleBang(name)
     if bangActive then
         stopBang()
     else
-        startBang(targetName or "")
+        startBang(name or "")
     end
 end
 
 -- ============================================
--- ОСТАЛЬНЫЕ ФУНКЦИИ
+-- NO CLIP
 -- ============================================
-
 local function toggleNoclip()
-    state.noclip = not state.noclip
-    if state.noclip then
+    noclipActive = not noclipActive
+    if noclipActive then
         if not noclipPart then
             noclipPart = Instance.new("Part")
             noclipPart.CanCollide = false
@@ -421,26 +286,29 @@ local function toggleNoclip()
             noclipPart.Anchored = true
             noclipPart.Parent = Workspace
         end
-        for _, part in ipairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
+        for _, p in ipairs(Character:GetDescendants()) do
+            if p:IsA("BasePart") then
+                p.CanCollide = false
             end
         end
         print("[Xeno] Noclip ON")
     else
         if noclipPart then noclipPart:Destroy() noclipPart = nil end
-        for _, part in ipairs(Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = true
+        for _, p in ipairs(Character:GetDescendants()) do
+            if p:IsA("BasePart") then
+                p.CanCollide = true
             end
         end
         print("[Xeno] Noclip OFF")
     end
 end
 
+-- ============================================
+-- GOD MODE
+-- ============================================
 local function toggleGod()
-    state.god = not state.god
-    if state.god then
+    godActive = not godActive
+    if godActive then
         Humanoid.MaxHealth = math.huge
         Humanoid.Health = math.huge
         Humanoid.BreakJointsOnDeath = false
@@ -453,12 +321,15 @@ local function toggleGod()
     end
 end
 
+-- ============================================
+-- SPIDER
+-- ============================================
 local function toggleSpider()
-    state.spider = not state.spider
-    if state.spider then
+    spiderActive = not spiderActive
+    if spiderActive then
         if spiderConnection then spiderConnection:Disconnect() end
         spiderConnection = RunService.Heartbeat:Connect(function()
-            if state.spider and RootPart and RootPart.Parent and Humanoid then
+            if spiderActive and RootPart and RootPart.Parent and Humanoid then
                 local ray = Ray.new(RootPart.Position, RootPart.CFrame.LookVector * 3)
                 local hit = Workspace:FindPartOnRay(ray, Character)
                 if hit then
@@ -474,17 +345,20 @@ local function toggleSpider()
             spiderConnection:Disconnect()
             spiderConnection = nil
         end
-        Humanoid.WalkSpeed = 16 * state.speed
+        Humanoid.WalkSpeed = 16
         print("[Xeno] Spider OFF")
     end
 end
 
+-- ============================================
+-- SCAFFOLD
+-- ============================================
 local function toggleScaffold()
-    state.scaffold = not state.scaffold
-    if state.scaffold then
+    scaffoldActive = not scaffoldActive
+    if scaffoldActive then
         if scaffoldConnection then scaffoldConnection:Disconnect() end
         scaffoldConnection = RunService.Heartbeat:Connect(function()
-            if state.scaffold and RootPart and RootPart.Parent then
+            if scaffoldActive and RootPart and RootPart.Parent then
                 local pos = RootPart.Position
                 local below = pos - Vector3.new(0, 2.5, 0)
                 local ray = Ray.new(below, Vector3.new(0, -0.5, 0))
@@ -511,47 +385,33 @@ local function toggleScaffold()
     end
 end
 
-local function setSpeed(value)
-    state.speed = value or 1
-    Humanoid.WalkSpeed = 16 * state.speed
-    print("[Xeno] Speed: " .. Humanoid.WalkSpeed)
-end
-
-local function setJump(value)
-    state.jump = value or 1
-    Humanoid.JumpPower = 50 * state.jump
-    print("[Xeno] Jump: " .. Humanoid.JumpPower)
-end
-
-local function clearAll()
-    local count = 0
-    for _, part in ipairs(Workspace:GetDescendants()) do
-        if part:IsA("BasePart") and part ~= RootPart and part.Parent ~= Character then
-            if not part:IsA("Terrain") then
-                part:Destroy()
-                count = count + 1
+-- ============================================
+-- INFINITY JUMP
+-- ============================================
+local function toggleInfinityJump()
+    infinityJumpActive = not infinityJumpActive
+    if infinityJumpActive then
+        if infinityJumpConnection then infinityJumpConnection:Disconnect() end
+        infinityJumpConnection = RunService.Heartbeat:Connect(function()
+            if infinityJumpActive and Humanoid and Humanoid.Parent then
+                Humanoid.Jump = true
+                task.wait(0.02)
+                Humanoid.Jump = false
             end
+        end)
+        print("[Xeno] Infinity Jump ON")
+    else
+        if infinityJumpConnection then
+            infinityJumpConnection:Disconnect()
+            infinityJumpConnection = nil
         end
+        print("[Xeno] Infinity Jump OFF")
     end
-    print("[Xeno] Cleared " .. count .. " parts")
 end
 
-local function teleportToPlayer(targetName)
-    if not targetName or targetName == "" then return end
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player.Name:lower():find(targetName:lower()) then
-            local targetChar = player.Character
-            if targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
-                RootPart.CFrame = targetChar.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
-                print("[Xeno] TP to " .. player.Name)
-                return
-            end
-        end
-    end
-    print("[Xeno] Player not found")
-end
-
+-- ============================================
 -- ESP
+-- ============================================
 local function createESP(player)
     if player == LocalPlayer then return end
     local char = player.Character
@@ -568,57 +428,51 @@ local function createESP(player)
     box.ZIndex = 10
     box.Parent = hrp
     
-    local billboard = Instance.new("BillboardGui")
-    billboard.Adornee = hrp
-    billboard.Size = UDim2.new(0, 200, 0, 50)
-    billboard.StudsOffset = Vector3.new(0, 4, 0)
-    billboard.AlwaysOnTop = true
-    billboard.Parent = hrp
+    local bill = Instance.new("BillboardGui")
+    bill.Adornee = hrp
+    bill.Size = UDim2.new(0, 200, 0, 50)
+    bill.StudsOffset = Vector3.new(0, 4, 0)
+    bill.AlwaysOnTop = true
+    bill.Parent = hrp
     
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 1, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = player.Name .. " [" .. math.floor((char.Humanoid and char.Humanoid.Health or 0)) .. " HP]"
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLabel.TextScaled = true
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.Parent = billboard
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 1, 0)
+    label.BackgroundTransparency = 1
+    label.Text = player.Name .. " [" .. math.floor((char.Humanoid and char.Humanoid.Health or 0)) .. " HP]"
+    label.TextColor3 = Color3.fromRGB(255, 255, 255)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Parent = bill
     
     table.insert(espObjects, box)
-    table.insert(espObjects, billboard)
+    table.insert(espObjects, bill)
     
     if char:FindFirstChild("Humanoid") then
         local conn = char.Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-            local health = char.Humanoid.Health
-            nameLabel.Text = player.Name .. " [" .. math.floor(health) .. " HP]"
-            if health < 30 then
-                box.Color3 = Color3.fromRGB(255, 0, 0)
-            elseif health < 70 then
-                box.Color3 = Color3.fromRGB(255, 255, 0)
-            else
-                box.Color3 = Color3.fromRGB(0, 255, 0)
-            end
+            local hp = char.Humanoid.Health
+            label.Text = player.Name .. " [" .. math.floor(hp) .. " HP]"
+            box.Color3 = hp < 30 and Color3.fromRGB(255,0,0) or hp < 70 and Color3.fromRGB(255,255,0) or Color3.fromRGB(0,255,0)
         end)
         table.insert(espConnections, conn)
     end
 end
 
 local function toggleESP()
-    state.esp = not state.esp
-    if state.esp then
+    espActive = not espActive
+    if espActive then
         for _, obj in ipairs(espObjects) do obj:Destroy() end
         espObjects = {}
         for _, conn in ipairs(espConnections) do conn:Disconnect() end
         espConnections = {}
         
-        for _, player in ipairs(Players:GetPlayers()) do
-            createESP(player)
+        for _, plr in ipairs(Players:GetPlayers()) do
+            createESP(plr)
         end
         
-        Players.PlayerAdded:Connect(function(player)
-            player.CharacterAdded:Connect(function()
+        Players.PlayerAdded:Connect(function(plr)
+            plr.CharacterAdded:Connect(function()
                 task.wait(0.5)
-                if state.esp then createESP(player) end
+                if espActive then createESP(plr) end
             end)
         end)
         print("[Xeno] ESP ON")
@@ -631,17 +485,19 @@ local function toggleESP()
     end
 end
 
+-- ============================================
 -- AIMBOT
+-- ============================================
 local function getClosestPlayer()
-    local closest, closestDist = nil, state.aimbotFOV
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local char = player.Character
+    local closest, closestDist = nil, 200
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local char = plr.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
                 local hrp = char.HumanoidRootPart
-                local screenPos, onScreen = Camera:WorldToScreenPoint(hrp.Position)
+                local pos, onScreen = Camera:WorldToScreenPoint(hrp.Position)
                 if onScreen then
-                    local dist = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(screenPos.X, screenPos.Y)).magnitude
+                    local dist = (Vector2.new(Mouse.X, Mouse.Y) - Vector2.new(pos.X, pos.Y)).magnitude
                     if dist < closestDist then
                         closestDist = dist
                         closest = hrp
@@ -654,52 +510,41 @@ local function getClosestPlayer()
 end
 
 local function toggleAimbot()
-    state.aimbot = not state.aimbot
-    print("[Xeno] Aimbot " .. (state.aimbot and "ON" or "OFF"))
+    aimbotActive = not aimbotActive
+    print("[Xeno] Aimbot " .. (aimbotActive and "ON" or "OFF"))
 end
 
 -- ============================================
--- ОБРАБОТКА БИНДОВ
+-- БИНДЫ
 -- ============================================
-UserInputService.InputBegan:Connect(function(input, gp)
+UserInputService.InputBegan:Connect(function(inp, gp)
     if gp then return end
-    if binds[input.KeyCode] then
-        binds[input.KeyCode]()
-    end
-end)
-
--- ============================================
--- СИСТЕМА БИНДОВ (ПКМ + клавиша)
--- ============================================
-local bindWaiting = nil
-
-local function bindFunction(key, func)
-    if binds[key] then
-        binds[key] = nil
-    end
-    binds[key] = func
-    print("[Xeno] ✅ Бинд: " .. tostring(key.Name) .. " -> " .. tostring(func))
-end
-
-local function unbindFunction(func)
-    for key, f in pairs(binds) do
-        if f == func then
-            binds[key] = nil
-            print("[Xeno] ❌ Бинд снят: " .. tostring(key.Name))
-            return true
+    
+    if aimbotActive and inp.UserInputType == Enum.UserInputType.MouseButton2 then
+        local target = getClosestPlayer()
+        if target then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position + Vector3.new(0, 1.5, 0))
         end
     end
-    return false
-end
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
+    
+    if binds[inp.KeyCode] then
+        binds[inp.KeyCode]()
+    end
+    
     if bindWaiting then
-        if input.KeyCode == Enum.KeyCode.Delete then
-            unbindFunction(bindWaiting)
+        if inp.KeyCode == Enum.KeyCode.Delete then
+            for k, f in pairs(binds) do
+                if f == bindWaiting then
+                    binds[k] = nil
+                    print("[Xeno] ❌ Бинд снят: " .. tostring(k.Name))
+                    break
+                end
+            end
             bindWaiting = nil
-        elseif input.KeyCode ~= Enum.KeyCode.Unknown then
-            bindFunction(input.KeyCode, bindWaiting)
+        elseif inp.KeyCode ~= Enum.KeyCode.Unknown then
+            if binds[inp.KeyCode] then binds[inp.KeyCode] = nil end
+            binds[inp.KeyCode] = bindWaiting
+            print("[Xeno] ✅ Бинд: " .. tostring(inp.KeyCode.Name) .. " -> " .. tostring(bindWaiting))
             bindWaiting = nil
         end
     end
@@ -714,8 +559,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 500, 0, 760)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -380)
+MainFrame.Size = UDim2.new(0, 500, 0, 720)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -360)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 2
@@ -729,7 +574,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v7.3"
+Title.Text = "FLAGMAN XENO v7.4"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -796,26 +641,22 @@ local function createButton(text, callback)
         print("[Xeno] ⏳ Ожидание клавиши для бинда... (Delete для снятия)")
     end)
     
-    table.insert(allButtons, {
-        button = btn,
-        text = text:lower()
-    })
-    
+    table.insert(allButtons, {button = btn, text = text:lower()})
     return btn
 end
 
 local function updateSearch(query)
     query = query:lower()
-    local visibleCount = 0
+    local count = 0
     for _, data in ipairs(allButtons) do
         if query == "" or data.text:find(query, 1, true) then
             data.button.Visible = true
-            visibleCount = visibleCount + 1
+            count = count + 1
         else
             data.button.Visible = false
         end
     end
-    ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, visibleCount * 46 + 20)
+    ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, count * 46 + 20)
 end
 
 SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
@@ -833,8 +674,6 @@ createButton("Fly Speed 100", function() setFlySpeed(100) end)
 createButton("Fly Speed 150", function() setFlySpeed(150) end)
 createButton("Fly Speed 200", function() setFlySpeed(200) end)
 
-createButton("Fly X2 (WASD + Space/Shift)", toggleFly2)
-
 createButton("Noclip", toggleNoclip)
 createButton("Godmode", toggleGod)
 createButton("Spider [X]", toggleSpider)
@@ -847,36 +686,29 @@ createButton("Bang (рывок)", bang)
 createButton("Jerk (рывок с эффектом)", jerk)
 
 createButton("Bang (преследование)", function()
-    local dialog = Instance.new("TextBox")
-    dialog.Size = UDim2.new(0, 250, 0, 35)
-    dialog.Position = UDim2.new(0.5, -125, 0.5, -17)
-    dialog.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-    dialog.TextColor3 = Color3.fromRGB(255, 255, 255)
-    dialog.PlaceholderText = "Введите ник игрока для Bang"
-    dialog.ClearTextOnFocus = false
-    dialog.Font = Enum.Font.GothamMedium
-    dialog.TextScaled = true
-    dialog.Parent = MainFrame
-    dialog:CaptureFocus()
-    dialog.FocusLost:Connect(function(enterPressed)
-        if enterPressed and dialog.Text ~= "" then
-            toggleBang(dialog.Text)
+    local d = Instance.new("TextBox")
+    d.Size = UDim2.new(0, 250, 0, 35)
+    d.Position = UDim2.new(0.5, -125, 0.5, -17)
+    d.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    d.TextColor3 = Color3.fromRGB(255, 255, 255)
+    d.PlaceholderText = "Введите ник игрока для Bang"
+    d.ClearTextOnFocus = false
+    d.Font = Enum.Font.GothamMedium
+    d.TextScaled = true
+    d.Parent = MainFrame
+    d:CaptureFocus()
+    d.FocusLost:Connect(function(entered)
+        if entered and d.Text ~= "" then
+            toggleBang(d.Text)
         end
-        dialog:Destroy()
+        d:Destroy()
     end)
 end)
 
-createButton("Speed x2", function() setSpeed(2) end)
-createButton("Speed x3", function() setSpeed(3) end)
-createButton("Jump x2", function() setJump(2) end)
-createButton("Jump x3", function() setJump(3) end)
-createButton("Reset Speed", function() setSpeed(1) end)
-createButton("Reset Jump", function() setJump(1) end)
-createButton("Clear Parts", clearAll)
 createButton("Kill All", function()
-    for _, player in ipairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local char = player.Character
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local char = plr.Character
             if char and char:FindFirstChild("Humanoid") then
                 char.Humanoid.Health = 0
             end
@@ -884,9 +716,100 @@ createButton("Kill All", function()
     end
     print("[Xeno] All players killed")
 end)
+
 createButton("Teleport", function()
-    local dialog = Instance.new("TextBox")
-    dialog.Size = UDim2.new(0, 200, 0, 30)
-    dialog.Position = UDim2.new(0.5, -100, 0.5, -15)
-    dialog.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-   
+    local d = Instance.new("TextBox")
+    d.Size = UDim2.new(0, 200, 0, 30)
+    d.Position = UDim2.new(0.5, -100, 0.5, -15)
+    d.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    d.TextColor3 = Color3.fromRGB(255, 255, 255)
+    d.PlaceholderText = "Имя игрока"
+    d.ClearTextOnFocus = false
+    d.Parent = MainFrame
+    d:CaptureFocus()
+    d.FocusLost:Connect(function(entered)
+        if entered and d.Text ~= "" then
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr.Name:lower():find(d.Text:lower()) then
+                    local char = plr.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        RootPart.CFrame = char.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+                        print("[Xeno] TP to " .. plr.Name)
+                        break
+                    end
+                end
+            end
+        end
+        d:Destroy()
+    end)
+end)
+
+createButton("Clear Parts", function()
+    local count = 0
+    for _, part in ipairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") and part ~= RootPart and part.Parent ~= Character then
+            if not part:IsA("Terrain") then
+                part:Destroy()
+                count = count + 1
+            end
+        end
+    end
+    print("[Xeno] Cleared " .. count .. " parts")
+end)
+
+task.wait(0.1)
+ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 46 + 20)
+
+-- ============================================
+-- УПРАВЛЕНИЕ
+-- ============================================
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if gp then return end
+    if inp.KeyCode == Enum.KeyCode.Insert then
+        MainFrame.Visible = not MainFrame.Visible
+        if MainFrame.Visible then updateSearch("") end
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if gp then return end
+    if inp.KeyCode == Enum.KeyCode.X then toggleSpider() end
+end)
+
+-- ============================================
+-- СБРОС ПРИ ПЕРЕРОЖДЕНИИ
+-- ============================================
+LocalPlayer.CharacterAdded:Connect(function(newChar)
+    Character = newChar
+    Humanoid = Character:WaitForChild("Humanoid")
+    RootPart = Character:WaitForChild("HumanoidRootPart")
+    
+    flyActive = false
+    noclipActive = false
+    godActive = false
+    spiderActive = false
+    scaffoldActive = false
+    espActive = false
+    aimbotActive = false
+    infinityJumpActive = false
+    bangActive = false
+    
+    if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
+    if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
+    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
+    if noclipPart then noclipPart:Destroy() noclipPart = nil end
+    if spiderConnection then spiderConnection:Disconnect() spiderConnection = nil end
+    if scaffoldConnection then scaffoldConnection:Disconnect() scaffoldConnection = nil end
+    if infinityJumpConnection then infinityJumpConnection:Disconnect() infinityJumpConnection = nil end
+    if bangConnection then bangConnection:Disconnect() bangConnection = nil end
+    
+    Humanoid.PlatformStand = false
+    print("[Xeno] Character reset")
+end)
+
+print("═══════════════════════════════════════")
+print("  ✦ FLAGMAN XENO v7.4 ✦")
+print("  INSERT - меню | X - Spider")
+print("  БИНДЫ: ПКМ на кнопке -> нажать клавишу")
+print("  DELETE - снять бинд")
+print("═══════════════════════════════════════")
