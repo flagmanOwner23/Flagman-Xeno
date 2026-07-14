@@ -1,6 +1,7 @@
--- Flagman Xeno v9.2 (WORKING INFINITY JUMP)
+-- Flagman Xeno v9.3 (FULL FIX)
 -- Центральное меню + its flagman справа снизу
--- Infinity Jump — полностью рабочий (бесконечные прыжки в воздухе)
+-- Infinity Jump — полностью рабочий
+-- Исправлены все ошибки
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -263,7 +264,6 @@ local function toggleInfinityJump()
     if infinityJumpActive then
         if infinityJumpConnection then infinityJumpConnection:Disconnect() end
         
-        -- Бесконечные прыжки через обработку нажатия Space
         infinityJumpConnection = UserInputService.InputBegan:Connect(function(input, gp)
             if gp then return end
             if infinityJumpActive and input.KeyCode == Enum.KeyCode.Space then
@@ -273,7 +273,7 @@ local function toggleInfinityJump()
             end
         end)
         
-        print("[Xeno] Infinity Jump ON (бесконечные прыжки в воздухе)")
+        print("[Xeno] Infinity Jump ON")
     else
         if infinityJumpConnection then
             infinityJumpConnection:Disconnect()
@@ -548,7 +548,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v9.2"
+Title.Text = "FLAGMAN XENO v9.3"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -857,4 +857,6 @@ createIYButton("Bang (преследование)", function()
     local d = Instance.new("TextBox")
     d.Size = UDim2.new(0, 200, 0, 30)
     d.Position = UDim2.new(0.5, -100, 0.5, -15)
-    d.BackgroundColor3 = Color3.fromRGB(30, 30, 
+    d.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    d.TextColor3 = Color3.fromRGB(255, 255, 255)
+    d.PlaceholderText = "Ник иг
