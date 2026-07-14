@@ -1,8 +1,9 @@
-# Flagman Xeno v4.0
+markdown
+# Flagman Xeno v5.0
 
 **Полнофункциональный скрипт для Roblox с поддержкой Xeno**
 
-![Version](https://img.shields.io/badge/version-4.0-red)
+![Version](https://img.shields.io/badge/version-5.0-red)
 ![Xeno](https://img.shields.io/badge/Xeno-Compatible-brightgreen)
 ![Roblox](https://img.shields.io/badge/Roblox-Ready-blue)
 
@@ -10,14 +11,14 @@
 
 - **Красивое неоновое меню** с эффектом стекла
 - **Поиск функций** в реальном времени
-- **16+ функций** включая Fly, Noclip, Godmode, ESP, Aimbot
+- **18+ функций** включая Fly, Noclip, Godmode, ESP, Aimbot, Bang, Jerk
+- **Бинды на любые клавиши** (ПКМ по кнопке)
 - **Полная совместимость с Xeno**
 - **Горячие клавиши** для быстрого доступа
-- **Анимации** при наведении и нажатии
 
 ## 🚀 Установка
 
-1. Скачайте файл `Flagman_Xeno_v4.0.lua`
+1. Скачайте файл `Flagman_Xeno_v5.0.lua`
 2. Откройте Xeno и подключитесь к игре
 3. Вставьте код в окно выполнения
 4. Нажмите **Execute**
@@ -30,17 +31,21 @@
 | F | Fly |
 | N | Noclip |
 | G | Godmode |
-| S | Spider |
+| X | Spider |
 | B | Scaffold |
+| J | Bang |
+| K | Jerk |
 | E | ESP |
 | A | Aimbot |
 | C | Clear Parts |
-| K | Kill All |
 | T | Teleport |
 
-## 📸 Скриншоты
+## 🎮 Как использовать бинды
 
-*Скоро будут добавлены*
+1. Откройте меню (`INSERT`)
+2. Нажмите **ПКМ** по любой кнопке
+3. Нажмите любую клавишу на клавиатуре
+4. Готово! Теперь функция привязана к этой клавише
 
 ## 📝 Лицензия
 
