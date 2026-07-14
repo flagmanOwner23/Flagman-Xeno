@@ -1,8 +1,7 @@
--- Flagman Xeno v10.0 (ULTRA STABLE)
--- Полностью переписан, работает в Xeno без ошибок
+-- Flagman Xeno v10.2 (DUAL UI + PURPLE THEME)
+-- Центральное меню + its flagman справа снизу
+-- Фиолетовое оформление
 -- Автор: good
-
-print("=== Flagman Xeno v10.0 загружается ===")
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -14,7 +13,6 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
--- Ждём загрузки персонажа
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
@@ -89,7 +87,7 @@ local function toggleFly()
         
         flyConnection = RunService.Heartbeat:Connect(updateFly)
         Humanoid.PlatformStand = true
-        print("[Xeno] Fly ON")
+        print("[Xeno] Fly ON (Speed: " .. flySpeed .. ")")
     else
         if bodyVelocity then bodyVelocity:Destroy() end
         if bodyGyro then bodyGyro:Destroy() end
@@ -104,7 +102,6 @@ local function setFlySpeed(val)
     print("[Xeno] Fly Speed: " .. flySpeed)
 end
 
--- Клавиши для полёта
 UserInputService.InputBegan:Connect(function(inp)
     if flyActive then
         if inp.KeyCode == Enum.KeyCode.W then flyKeys.W = true end
@@ -314,7 +311,7 @@ UserInputService.InputBegan:Connect(function(inp)
 end)
 
 -- ============================================
--- МЕНЮ
+-- ФИОЛЕТОВОЕ МЕНЮ (ЦЕНТР)
 -- ============================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FlagmanXenoUI"
@@ -322,45 +319,45 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 400, 0, 500)
-MainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
-MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+MainFrame.Size = UDim2.new(0, 450, 0, 550)
+MainFrame.Position = UDim2.new(0.5, -225, 0.5, -275)
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 20, 60)  -- ФИОЛЕТОВЫЙ
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 2
-MainFrame.BorderColor3 = Color3.fromRGB(255, 80, 80)
+MainFrame.BorderColor3 = Color3.fromRGB(180, 100, 255)
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 MainFrame.Visible = false
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 40)
+Title.Size = UDim2.new(1, 0, 0, 45)
 Title.Position = UDim2.new(0, 0, 0, 0)
-Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
+Title.BackgroundColor3 = Color3.fromRGB(60, 30, 80)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v10.0"
-Title.TextColor3 = Color3.fromRGB(255, 100, 100)
+Title.Text = "✦ FLAGMAN XENO ✦"
+Title.TextColor3 = Color3.fromRGB(200, 150, 255)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
 Title.Parent = MainFrame
 
 local SearchBox = Instance.new("TextBox")
 SearchBox.Size = UDim2.new(1, -10, 0, 30)
-SearchBox.Position = UDim2.new(0, 5, 0, 45)
-SearchBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+SearchBox.Position = UDim2.new(0, 5, 0, 50)
+SearchBox.BackgroundColor3 = Color3.fromRGB(50, 30, 70)
 SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 SearchBox.PlaceholderText = "🔍 Поиск..."
-SearchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 200)
+SearchBox.PlaceholderColor3 = Color3.fromRGB(180, 150, 200)
 SearchBox.Text = ""
 SearchBox.ClearTextOnFocus = false
 SearchBox.Font = Enum.Font.GothamMedium
 SearchBox.TextScaled = true
 SearchBox.BorderSizePixel = 1
-SearchBox.BorderColor3 = Color3.fromRGB(255, 80, 80)
+SearchBox.BorderColor3 = Color3.fromRGB(180, 100, 255)
 SearchBox.Parent = MainFrame
 
 local ButtonContainer = Instance.new("ScrollingFrame")
-ButtonContainer.Size = UDim2.new(1, -10, 1, -90)
-ButtonContainer.Position = UDim2.new(0, 5, 0, 80)
+ButtonContainer.Size = UDim2.new(1, -10, 1, -100)
+ButtonContainer.Position = UDim2.new(0, 5, 0, 85)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
 ButtonContainer.ScrollBarThickness = 6
@@ -375,28 +372,28 @@ local allButtons = {}
 
 local function createButton(text, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 30)
-    btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+    btn.Size = UDim2.new(1, 0, 0, 32)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 30, 70)
     btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.TextColor3 = Color3.fromRGB(220, 200, 255)
     btn.TextScaled = true
     btn.Font = Enum.Font.GothamMedium
     btn.BorderSizePixel = 1
-    btn.BorderColor3 = Color3.fromRGB(100, 100, 150)
+    btn.BorderColor3 = Color3.fromRGB(180, 100, 255)
     btn.Parent = ButtonContainer
     
     btn.MouseEnter:Connect(function()
-        btn.BackgroundColor3 = Color3.fromRGB(60, 60, 90)
+        btn.BackgroundColor3 = Color3.fromRGB(70, 40, 90)
     end)
     btn.MouseLeave:Connect(function()
-        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        btn.BackgroundColor3 = Color3.fromRGB(50, 30, 70)
     end)
     
     btn.MouseButton1Click:Connect(function()
         callback()
         btn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
         task.wait(0.1)
-        btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        btn.BackgroundColor3 = Color3.fromRGB(50, 30, 70)
     end)
     
     btn.MouseButton2Click:Connect(function()
@@ -419,7 +416,7 @@ local function updateSearch(query)
             data.button.Visible = false
         end
     end
-    ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, count * 34 + 20)
+    ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, count * 36 + 20)
 end
 
 SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
@@ -427,7 +424,7 @@ SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
 end)
 
 -- ============================================
--- КНОПКИ
+-- КНОПКИ ЦЕНТРАЛЬНОГО МЕНЮ
 -- ============================================
 createButton("Fly (WASD + Space/Shift)", toggleFly)
 createButton("Fly Speed 25", function() setFlySpeed(25) end)
@@ -459,7 +456,7 @@ createButton("Teleport", function()
     local d = Instance.new("TextBox")
     d.Size = UDim2.new(0, 200, 0, 30)
     d.Position = UDim2.new(0.5, -100, 0.5, -15)
-    d.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
+    d.BackgroundColor3 = Color3.fromRGB(50, 30, 70)
     d.TextColor3 = Color3.fromRGB(255, 255, 255)
     d.PlaceholderText = "Имя игрока"
     d.ClearTextOnFocus = false
@@ -484,8 +481,184 @@ createButton("Teleport", function()
     end)
 end)
 
+createButton("Clear Parts", function()
+    local count = 0
+    for _, part in ipairs(Workspace:GetDescendants()) do
+        if part:IsA("BasePart") and part ~= RootPart and part.Parent ~= Character then
+            if not part:IsA("Terrain") then
+                part:Destroy()
+                count = count + 1
+            end
+        end
+    end
+    print("[Xeno] Cleared " .. count .. " parts")
+end)
+
 task.wait(0.1)
-ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 34 + 20)
+ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 36 + 20)
+
+-- ============================================
+-- ITS FLAGMAN (СПРАВА СНИЗУ) — ФИОЛЕТОВЫЙ
+-- ============================================
+local IYFrame = Instance.new("Frame")
+IYFrame.Size = UDim2.new(0, 320, 0, 420)
+IYFrame.Position = UDim2.new(1, -340, 1, -440)
+IYFrame.BackgroundColor3 = Color3.fromRGB(40, 20, 60)
+IYFrame.BackgroundTransparency = 0.05
+IYFrame.BorderSizePixel = 2
+IYFrame.BorderColor3 = Color3.fromRGB(180, 100, 255)
+IYFrame.ClipsDescendants = true
+IYFrame.Parent = ScreenGui
+IYFrame.Visible = false
+
+local IYTitle = Instance.new("TextLabel")
+IYTitle.Size = UDim2.new(1, 0, 0, 35)
+IYTitle.Position = UDim2.new(0, 0, 0, 0)
+IYTitle.BackgroundColor3 = Color3.fromRGB(60, 30, 80)
+IYTitle.BackgroundTransparency = 0.5
+IYTitle.Text = "✦ ITS FLAGMAN ✦"
+IYTitle.TextColor3 = Color3.fromRGB(200, 150, 255)
+IYTitle.TextScaled = true
+IYTitle.Font = Enum.Font.GothamBold
+IYTitle.Parent = IYFrame
+
+local IYSearch = Instance.new("TextBox")
+IYSearch.Size = UDim2.new(1, -10, 0, 30)
+IYSearch.Position = UDim2.new(0, 5, 0, 40)
+IYSearch.BackgroundColor3 = Color3.fromRGB(50, 30, 70)
+IYSearch.TextColor3 = Color3.fromRGB(255, 255, 255)
+IYSearch.PlaceholderText = "🔍 Поиск..."
+IYSearch.PlaceholderColor3 = Color3.fromRGB(180, 150, 200)
+IYSearch.Text = ""
+IYSearch.ClearTextOnFocus = false
+IYSearch.Font = Enum.Font.GothamMedium
+IYSearch.TextScaled = true
+IYSearch.BorderSizePixel = 1
+IYSearch.BorderColor3 = Color3.fromRGB(180, 100, 255)
+IYSearch.Parent = IYFrame
+
+local IYContainer = Instance.new("ScrollingFrame")
+IYContainer.Size = UDim2.new(1, -10, 1, -90)
+IYContainer.Position = UDim2.new(0, 5, 0, 75)
+IYContainer.BackgroundTransparency = 1
+IYContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
+IYContainer.ScrollBarThickness = 6
+IYContainer.Parent = IYFrame
+
+local IYLayout = Instance.new("UIListLayout")
+IYLayout.Padding = UDim.new(0, 4)
+IYLayout.SortOrder = Enum.SortOrder.LayoutOrder
+IYLayout.Parent = IYContainer
+
+local iyButtons = {}
+
+local function createIYButton(text, callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 0, 28)
+    btn.BackgroundColor3 = Color3.fromRGB(50, 30, 70)
+    btn.Text = text
+    btn.TextColor3 = Color3.fromRGB(220, 200, 255)
+    btn.TextScaled = true
+    btn.Font = Enum.Font.GothamMedium
+    btn.BorderSizePixel = 1
+    btn.BorderColor3 = Color3.fromRGB(180, 100, 255)
+    btn.Parent = IYContainer
+    
+    btn.MouseEnter:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(70, 40, 90)
+    end)
+    btn.MouseLeave:Connect(function()
+        btn.BackgroundColor3 = Color3.fromRGB(50, 30, 70)
+    end)
+    
+    btn.MouseButton1Click:Connect(function()
+        callback()
+        btn.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
+        task.wait(0.1)
+        btn.BackgroundColor3 = Color3.fromRGB(50, 30, 70)
+    end)
+    
+    btn.MouseButton2Click:Connect(function()
+        bindWaiting = callback
+        print("[Xeno] ⏳ Ожидание клавиши для бинда...")
+    end)
+    
+    table.insert(iyButtons, {button = btn, text = text:lower()})
+    return btn
+end
+
+local function updateIYSearch(query)
+    query = query:lower()
+    local count = 0
+    for _, data in ipairs(iyButtons) do
+        if query == "" or data.text:find(query, 1, true) then
+            data.button.Visible = true
+            count = count + 1
+        else
+            data.button.Visible = false
+        end
+    end
+    IYContainer.CanvasSize = UDim2.new(0, 0, 0, count * 32 + 20)
+end
+
+IYSearch:GetPropertyChangedSignal("Text"):Connect(function()
+    updateIYSearch(IYSearch.Text)
+end)
+
+-- ============================================
+-- КНОПКИ ITS FLAGMAN
+-- ============================================
+createIYButton("Fly", toggleFly)
+createIYButton("Fly Speed 50", function() setFlySpeed(50) end)
+createIYButton("Fly Speed 100", function() setFlySpeed(100) end)
+createIYButton("Fly Speed 200", function() setFlySpeed(200) end)
+createIYButton("Noclip", toggleNoclip)
+createIYButton("Godmode", toggleGod)
+createIYButton("Spider", toggleSpider)
+createIYButton("ESP", toggleESP)
+createIYButton("Infinity Jump", toggleInfinityJump)
+createIYButton("Kill All", function()
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            local char = plr.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.Health = 0
+            end
+        end
+    end
+    print("[Xeno] All players killed")
+end)
+createIYButton("Teleport", function()
+    local d = Instance.new("TextBox")
+    d.Size = UDim2.new(0, 200, 0, 30)
+    d.Position = UDim2.new(0.5, -100, 0.5, -15)
+    d.BackgroundColor3 = Color3.fromRGB(50, 30, 70)
+    d.TextColor3 = Color3.fromRGB(255, 255, 255)
+    d.PlaceholderText = "Имя игрока"
+    d.ClearTextOnFocus = false
+    d.Font = Enum.Font.GothamMedium
+    d.TextScaled = true
+    d.Parent = IYFrame
+    d:CaptureFocus()
+    d.FocusLost:Connect(function(entered)
+        if entered and d.Text ~= "" then
+            for _, plr in ipairs(Players:GetPlayers()) do
+                if plr.Name:lower():find(d.Text:lower()) then
+                    local char = plr.Character
+                    if char and char:FindFirstChild("HumanoidRootPart") then
+                        RootPart.CFrame = char.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
+                        print("[Xeno] TP to " .. plr.Name)
+                        break
+                    end
+                end
+            end
+        end
+        d:Destroy()
+    end)
+end)
+
+task.wait(0.1)
+IYContainer.CanvasSize = UDim2.new(0, 0, 0, #iyButtons * 32 + 20)
 
 -- ============================================
 -- УПРАВЛЕНИЕ
@@ -494,6 +667,13 @@ UserInputService.InputBegan:Connect(function(inp)
     if inp.KeyCode == Enum.KeyCode.Insert then
         MainFrame.Visible = not MainFrame.Visible
         if MainFrame.Visible then updateSearch("") end
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(inp)
+    if inp.KeyCode == Enum.KeyCode.RightShift then
+        IYFrame.Visible = not IYFrame.Visible
+        if IYFrame.Visible then updateIYSearch("") end
     end
 end)
 
@@ -530,8 +710,10 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
 end)
 
 print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v10.0 ✦")
-print("  INSERT - меню | X - Spider")
+print("  ✦ FLAGMAN XENO v10.2 ✦")
+print("  INSERT - центральное меню")
+print("  Right Shift - ITS FLAGMAN (справа снизу)")
+print("  X - Spider")
 print("  БИНДЫ: ПКМ на кнопке -> нажать клавишу")
 print("  DELETE - снять бинд")
 print("═══════════════════════════════════════")
