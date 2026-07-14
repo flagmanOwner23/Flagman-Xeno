@@ -1,6 +1,5 @@
--- Flagman Xeno v6.8 (INFINITY JUMP FIX + BANG ULTRA FAST)
--- Infinity Jump: работает через RunService (бесконечные прыжки в воздухе)
--- Bang: максимально быстрый пинг-понг (без задержек)
+-- Flagman Xeno v7.0 (IY Style)
+-- Fly с регулировкой скорости, Bang как в Infinite Yield
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -78,7 +77,7 @@ local function stopFly()
 end
 
 -- ============================================
--- ПОЛЁТ (обычный)
+-- ПОЛЁТ (IY STYLE) с регулировкой скорости
 -- ============================================
 local flyConnection = nil
 local flyKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
@@ -124,15 +123,21 @@ local function toggleFly()
         
         flyConnection = RunService.Heartbeat:Connect(updateFly)
         Humanoid.PlatformStand = true
-        print("[Xeno] Fly ON")
+        print("[Xeno] Fly ON (Speed: " .. state.flySpeed .. ")")
     else
         stopFly()
         print("[Xeno] Fly OFF")
     end
 end
 
+-- Регулировка скорости полёта (как в IY)
+local function setFlySpeed(value)
+    state.flySpeed = value
+    print("[Xeno] Fly Speed: " .. value)
+end
+
 -- ============================================
--- ПОЛЁТ X2
+-- ПОЛЁТ X2 (для совместимости)
 -- ============================================
 local fly2Connection = nil
 local fly2Keys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
@@ -178,7 +183,7 @@ local function toggleFly2()
         
         fly2Connection = RunService.Heartbeat:Connect(updateFly2)
         Humanoid.PlatformStand = true
-        print("[Xeno] Fly X2 ON")
+        print("[Xeno] Fly X2 ON (Speed: " .. state.fly2Speed .. ")")
     else
         stopFly()
         print("[Xeno] Fly X2 OFF")
@@ -226,7 +231,34 @@ UserInputService.InputEnded:Connect(function(input, gp)
 end)
 
 -- ============================================
--- INFINITY JUMP (ИСПРАВЛЕН)
+-- BANG (ТОЧНАЯ КОПИЯ ИЗ INFINITE YIELD)
+-- ============================================
+local function bang()
+    if not RootPart then return end
+    local direction = RootPart.CFrame.LookVector
+    local power = 150  -- стандартная сила рывка в IY
+    
+    -- Создаём импульс
+    RootPart.Velocity = direction * power
+    
+    -- Визуальный эффект (вспышка)
+    local flash = Instance.new("Part")
+    flash.Size = Vector3.new(2, 2, 2)
+    flash.Position = RootPart.Position
+    flash.Anchored = true
+    flash.CanCollide = false
+    flash.BrickColor = BrickColor.new("Bright red")
+    flash.Material = Enum.Material.Neon
+    flash.Transparency = 0.5
+    flash.Parent = workspace
+    game:GetService("Debris"):AddItem(flash, 0.5)
+    game:GetService("TweenService"):Create(flash, TweenInfo.new(0.5), {Transparency = 1}):Play()
+    
+    print("[Xeno] Bang!")
+end
+
+-- ============================================
+-- INFINITY JUMP
 -- ============================================
 local function toggleInfinityJump()
     state.infinityJump = not state.infinityJump
@@ -235,7 +267,7 @@ local function toggleInfinityJump()
         infinityJumpConnection = RunService.Heartbeat:Connect(function()
             if state.infinityJump and Humanoid and Humanoid.Parent then
                 Humanoid.Jump = true
-                task.wait(0.01)
+                task.wait(0.02)
                 Humanoid.Jump = false
             end
         end)
@@ -250,7 +282,7 @@ local function toggleInfinityJump()
 end
 
 -- ============================================
--- BANG (МАКСИМАЛЬНО БЫСТРЫЙ)
+-- BANG ПРЕСЛЕДОВАНИЕ (опционально)
 -- ============================================
 local function stopBang()
     bangActive = false
@@ -294,7 +326,7 @@ local function startBang(targetName)
     end
     
     local lastMove = 0
-    local cooldown = 0.05  -- МАКСИМАЛЬНО БЫСТРО (почти без задержки)
+    local cooldown = 0.05
     
     bangConnection = RunService.Heartbeat:Connect(function()
         if not bangActive or not bangTarget or not bangTarget.Character then
@@ -648,8 +680,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 500, 0, 680)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -340)
+MainFrame.Size = UDim2.new(0, 500, 0, 720)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -360)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 2
@@ -663,7 +695,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v6.8"
+Title.Text = "FLAGMAN XENO v7.0 (IY Style)"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -760,7 +792,15 @@ end)
 -- КНОПКИ МЕНЮ
 -- ============================================
 createButton("Fly (WASD + Space/Shift)", toggleFly)
+createButton("Fly Speed 25", function() setFlySpeed(25) end)
+createButton("Fly Speed 50", function() setFlySpeed(50) end)
+createButton("Fly Speed 75", function() setFlySpeed(75) end)
+createButton("Fly Speed 100", function() setFlySpeed(100) end)
+createButton("Fly Speed 150", function() setFlySpeed(150) end)
+createButton("Fly Speed 200", function() setFlySpeed(200) end)
+
 createButton("Fly X2 (WASD + Space/Shift)", toggleFly2)
+
 createButton("Noclip", toggleNoclip)
 createButton("Godmode", toggleGod)
 createButton("Spider [X]", toggleSpider)
@@ -769,6 +809,10 @@ createButton("ESP", toggleESP)
 createButton("Aimbot", toggleAimbot)
 createButton("Infinity Jump", toggleInfinityJump)
 
+-- Bang (как в IY)
+createButton("Bang (рывок)", bang)
+
+-- Bang преследование
 createButton("Bang (преследование)", function()
     local dialog = Instance.new("TextBox")
     dialog.Size = UDim2.new(0, 250, 0, 35)
@@ -855,33 +899,4 @@ end)
 LocalPlayer.CharacterAdded:Connect(function(newChar)
     Character = newChar
     Humanoid = Character:WaitForChild("Humanoid")
-    RootPart = Character:WaitForChild("HumanoidRootPart")
-    
-    stopFly()
-    state.noclip = false
-    state.god = false
-    state.spider = false
-    state.scaffold = false
-    state.bang = false
-    state.infinityJump = false
-    
-    if noclipPart then noclipPart:Destroy() noclipPart = nil end
-    if spiderConnection then spiderConnection:Disconnect() spiderConnection = nil end
-    if scaffoldConnection then scaffoldConnection:Disconnect() scaffoldConnection = nil end
-    if bangConnection then bangConnection:Disconnect() bangConnection = nil end
-    if infinityJumpConnection then infinityJumpConnection:Disconnect() infinityJumpConnection = nil end
-    
-    setSpeed(1)
-    setJump(1)
-    
-    print("[Xeno] Character reset")
-end)
-
-print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v6.8 ✦")
-print("  INSERT - меню | X - Spider")
-print("  INFINITY JUMP - работает через RunService")
-print("  BANG - максимально быстрый (0.05 сек)")
-print("  БИНДЫ: ПКМ на кнопке -> нажать клавишу")
-print("  DELETE - снять бинд с функции")
-print("═══════════════════════════════════════")
+    RootPart =
