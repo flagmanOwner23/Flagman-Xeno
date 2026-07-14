@@ -1,4 +1,4 @@
--- Flagman Xeno v5.3 ULTIMATE (исправлены бинды + ESP)
+-- Flagman Xeno v5.3 ULTIMATE (Fly x2 + BANG)
 -- Автор: good
 -- Меню: Insert | Бинды: ПКМ по кнопке | Удаление бинда: Delete
 
@@ -17,6 +17,7 @@ local RootPart = Character:WaitForChild("HumanoidRootPart")
 
 local state = {
     fly = false,
+    flySpeedMode = 1, -- 1 = обычный, 2 = x2
     noclip = false,
     god = false,
     spider = false,
@@ -25,9 +26,12 @@ local state = {
     aimbot = false,
     antiAFK = false,
     infiniteJump = false,
+    bang = false,
+    bangTarget = nil,
     speed = 1,
     jump = 1,
     flySpeed = 50,
+    bangSpeed = 150,
     aimbotFOV = 200,
     aimbotSmoothness = 0.3
 }
@@ -39,6 +43,7 @@ local spiderConnection = nil
 local scaffoldConnection = nil
 local antiAFKConnection = nil
 local infiniteJumpConnection = nil
+local bangConnection = nil
 local flyKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
 local currentBindDialog = nil
 
@@ -51,7 +56,7 @@ local espObjects = {}
 local espConnections = {}
 local espActivePlayers = {}
 
--- =================== FLY ===================
+-- =================== FLY (с двумя режимами) ===================
 local flyConnection = nil
 local function updateFly()
     if not state.fly or not RootPart then return end
@@ -64,7 +69,8 @@ local function updateFly()
     if flyKeys.Space then direction = direction + Vector3.new(0,1,0) end
     if flyKeys.Shift then direction = direction - Vector3.new(0,1,0) end
     if direction.Magnitude > 0 then
-        direction = direction.Unit * state.flySpeed
+        local speed = state.flySpeed * state.flySpeedMode
+        direction = direction.Unit * speed
     end
     if bodyVelocity then bodyVelocity.Velocity = direction end
 end
@@ -85,13 +91,20 @@ local function toggleFly()
         bodyGyro.Parent = RootPart
         flyConnection = RunService.Heartbeat:Connect(updateFly)
         Humanoid.PlatformStand = true
-        print("[Xeno] Fly ON")
+        print("[Xeno] Fly ON (speed x" .. state.flySpeedMode .. ")")
     else
         if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
         if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
         if flyConnection then flyConnection:Disconnect() flyConnection = nil end
         Humanoid.PlatformStand = false
         print("[Xeno] Fly OFF")
+    end
+end
+
+local function setFlySpeedMode(mode)
+    state.flySpeedMode = mode
+    if state.fly then
+        print("[Xeno] Fly speed: x" .. mode)
     end
 end
 
@@ -115,6 +128,98 @@ UserInputService.InputEnded:Connect(function(input,gp)
     elseif k == Enum.KeyCode.Space then flyKeys.Space = false
     elseif k == Enum.KeyCode.LeftShift then flyKeys.Shift = false end
 end)
+
+-- =================== BANG (преследование игрока) ===================
+local function toggleBang()
+    state.bang = not state.bang
+    if state.bang then
+        if not state.bangTarget then
+            print("[Xeno] BANG: сначала выберите цель через ПКМ на кнопке BANG")
+            state.bang = false
+            return
+        end
+        if bangConnection then bangConnection:Disconnect() end
+        
+        -- Автоматически включаем Fly если выключен
+        if not state.fly then
+            toggleFly()
+        end
+        
+        local target = state.bangTarget
+        print("[Xeno] BANG ON → преследуем: " .. target.Name)
+        
+        bangConnection = RunService.Heartbeat:Connect(function()
+            if not state.bang or not state.bangTarget then
+                return
+            end
+            
+            local targetChar = state.bangTarget.Character
+            if not targetChar then return end
+            local targetHRP = targetChar:FindFirstChild("HumanoidRootPart")
+            if not targetHRP then return end
+            
+            local myPos = RootPart.Position
+            local targetPos = targetHRP.Position
+            
+            local distance = (targetPos - myPos).magnitude
+            
+            -- Если далеко - летим на высокой скорости
+            if distance > 10 then
+                local direction = (targetPos - myPos).Unit
+                local speed = state.bangSpeed
+                if bodyVelocity then
+                    bodyVelocity.Velocity = direction * speed
+                end
+                -- Смотрим на цель
+                if bodyGyro then
+                    bodyGyro.CFrame = CFrame.new(RootPart.Position, targetPos)
+                end
+            else
+                -- ДОБРАЛИСЬ до цели - делаем хаотичные движения вперёд-назад
+                local offset = Vector3.new(
+                    math.sin(tick() * 5) * 2,
+                    math.sin(tick() * 3) * 1.5,
+                    math.cos(tick() * 4) * 2
+                )
+                local movePos = targetPos + offset
+                local direction = (movePos - myPos).Unit
+                if bodyVelocity then
+                    bodyVelocity.Velocity = direction * state.bangSpeed * 0.8
+                end
+                if bodyGyro then
+                    bodyGyro.CFrame = CFrame.new(RootPart.Position, targetPos + Vector3.new(0, 1, 0))
+                end
+            end
+        end)
+    else
+        if bangConnection then
+            bangConnection:Disconnect()
+            bangConnection = nil
+        end
+        -- Сбрасываем скорость полёта
+        if bodyVelocity then
+            bodyVelocity.Velocity = Vector3.new(0,0,0)
+        end
+        print("[Xeno] BANG OFF")
+    end
+end
+
+local function setBangTarget(playerName)
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player.Name:lower():find(playerName:lower()) then
+            state.bangTarget = player
+            print("[Xeno] Цель BANG: " .. player.Name)
+            -- Если BANG уже включён - перезапускаем
+            if state.bang then
+                toggleBang()
+                wait(0.1)
+                toggleBang()
+            end
+            return
+        end
+    end
+    print("[Xeno] Игрок не найден: " .. playerName)
+end
 
 -- =================== NOCLIP ===================
 local function toggleNoclip()
@@ -300,7 +405,7 @@ local function teleportToPlayer(name)
     print("[Xeno] Player not found")
 end
 
--- =================== ESP (ПОЛНОСТЬЮ ИСПРАВЛЕН) ===================
+-- =================== ESP (ПОЛНАЯ ОЧИСТКА) ===================
 local function createESP(player)
     if player == LocalPlayer then return end
     if espActivePlayers[player] then return end
@@ -393,9 +498,7 @@ local function createESP(player)
     table.insert(espConnections, charAddedConn)
 end
 
--- АГРЕССИВНАЯ ОЧИСТКА ESP
 local function cleanESP()
-    -- Удаляем все объекты из списка
     for i = #espObjects, 1, -1 do
         local obj = espObjects[i]
         if obj then
@@ -403,8 +506,6 @@ local function cleanESP()
         end
         table.remove(espObjects, i)
     end
-    
-    -- Отключаем все подключения
     for i = #espConnections, 1, -1 do
         local conn = espConnections[i]
         if conn then
@@ -412,19 +513,13 @@ local function cleanESP()
         end
         table.remove(espConnections, i)
     end
-    
-    -- Очищаем список активных игроков
     espActivePlayers = {}
-    
-    -- СКАНИРУЕМ ВЕСЬ WORKSPACE и удаляем ВСЕ объекты ESP
     for _, obj in ipairs(Workspace:GetDescendants()) do
         if obj:IsA("BoxHandleAdornment") then
-            -- Проверяем, что это ESP (цвет близок к нашему)
             if obj.Color3 and (obj.Color3.R > 0.8 or obj.Color3.G > 0.8) then
                 pcall(function() obj:Destroy() end)
             end
         elseif obj:IsA("BillboardGui") then
-            -- Проверяем, что это наш билборд (размер и наличие TextLabel)
             if obj.Size == UDim2.new(0, 200, 0, 50) then
                 local label = obj:FindFirstChild("TextLabel")
                 if label and label.Text and label.Text:match("%[%d+ HP%]") then
@@ -433,20 +528,16 @@ local function cleanESP()
             end
         end
     end
-    
     print("[Xeno] ESP полностью очищен")
 end
 
 local function toggleESP()
     state.esp = not state.esp
     if state.esp then
-        -- Включаем ESP
-        cleanESP() -- Предварительная очистка
-        
+        cleanESP()
         for _, player in ipairs(Players:GetPlayers()) do
             createESP(player)
         end
-        
         local playerAddedConn = Players.PlayerAdded:Connect(function(player)
             player.CharacterAdded:Connect(function()
                 wait(0.5)
@@ -454,12 +545,10 @@ local function toggleESP()
             end)
         end)
         table.insert(espConnections, playerAddedConn)
-        
         print("[Xeno] ESP ON")
     else
-        -- ВЫКЛЮЧАЕМ ESP - ПОЛНАЯ ОЧИСТКА
         cleanESP()
-        print("[Xeno] ESP OFF - полная очистка выполнена")
+        print("[Xeno] ESP OFF")
     end
 end
 
@@ -508,8 +597,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0,500,0,650)
-MainFrame.Position = UDim2.new(0.5,-250,0.5,-325)
+MainFrame.Size = UDim2.new(0,500,0,700)
+MainFrame.Position = UDim2.new(0.5,-250,0.5,-350)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15,15,30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 2
@@ -570,7 +659,7 @@ BindInfo.Parent = MainFrame
 
 local allButtons = {}
 
--- =================== СИСТЕМА БИНДОВ (исправлена) ===================
+-- =================== СИСТЕМА БИНДОВ ===================
 local function setupBind(button, callback, funcName)
     button.MouseButton2Click:Connect(function()
         if currentBindDialog and currentBindDialog.Parent then
@@ -643,10 +732,8 @@ local function setupBind(button, callback, funcName)
             
             local key = input.KeyCode
             
-            -- УДАЛЕНИЕ БИНДА ПО DELETE
             if key == Enum.KeyCode.Delete then
                 local found = false
-                -- Удаляем все бинды, связанные с этой функцией
                 for k, v in pairs(_G.XenoBinds) do
                     if v == callback then
                         _G.XenoBinds[k] = nil
@@ -673,23 +760,19 @@ local function setupBind(button, callback, funcName)
                 return
             end
             
-            -- УСТАНОВКА БИНДА
             if key ~= Enum.KeyCode.Unknown then
-                -- Удаляем старые бинды для этой функции
                 for k, v in pairs(_G.XenoBinds) do
                     if v == callback then
                         _G.XenoBinds[k] = nil
                         _G.XenoBindsInfo[k] = nil
                     end
                 end
-                
                 _G.XenoBinds[key] = callback
                 _G.XenoBindsInfo[key] = funcName
                 keyDisplay.Text = "✅ " .. key.Name .. " → " .. funcName
                 keyDisplay.TextColor3 = Color3.fromRGB(100, 255, 100)
                 button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
                 print("[Xeno] Бинд установлен: " .. key.Name .. " → " .. funcName)
-                
                 wait(0.8)
                 dialogDestroyed = true
                 bindConnection:Disconnect()
@@ -738,19 +821,10 @@ local function createButton(text, callback)
     return btn
 end
 
--- =================== ОБРАБОТЧИК БИНДОВ ===================
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    local key = input.KeyCode
-    if key ~= Enum.KeyCode.Unknown then
-        if _G.XenoBinds[key] then
-            _G.XenoBinds[key]()
-        end
-    end
-end)
-
 -- =================== КНОПКИ МЕНЮ ===================
 createButton("Fly (WASD+Space/Shift)", toggleFly)
+createButton("Fly Speed x1", function() setFlySpeedMode(1) end)
+createButton("Fly Speed x2", function() setFlySpeedMode(2) end)
 createButton("Noclip", toggleNoclip)
 createButton("Godmode", toggleGod)
 createButton("Spider [X]", toggleSpider)
@@ -761,62 +835,4 @@ createButton("Anti-AFK", toggleAntiAFK)
 createButton("Infinite Jump", toggleInfiniteJump)
 createButton("Speed x2", function() setSpeed(2) end)
 createButton("Speed x3", function() setSpeed(3) end)
-createButton("Jump x2", function() setJump(2) end)
-createButton("Jump x3", function() setJump(3) end)
-createButton("Reset Speed", function() setSpeed(1) end)
-createButton("Reset Jump", function() setJump(1) end)
-createButton("Clear Parts", clearAll)
-createButton("Kill All", killAll)
-createButton("Teleport", function()
-    local dlg = Instance.new("TextBox")
-    dlg.Size = UDim2.new(0,200,0,30)
-    dlg.Position = UDim2.new(0.5,-100,0.5,-15)
-    dlg.BackgroundColor3 = Color3.fromRGB(30,30,50)
-    dlg.TextColor3 = Color3.fromRGB(255,255,255)
-    dlg.PlaceholderText = "Имя игрока"
-    dlg.ClearTextOnFocus = false
-    dlg.Parent = MainFrame
-    dlg:CaptureFocus()
-    dlg.FocusLost:Connect(function(enter)
-        if enter and dlg.Text ~= "" then teleportToPlayer(dlg.Text) end
-        dlg:Destroy()
-    end)
-end)
-
-local function updateSearch(query)
-    query = query:lower()
-    local vis = 0
-    for _, data in ipairs(allButtons) do
-        if query == "" or data.text:find(query,1,true) then
-            data.button.Visible = true
-            vis = vis + 1
-        else
-            data.button.Visible = false
-        end
-    end
-    ButtonContainer.CanvasSize = UDim2.new(0,0,0, vis * 46 + 20)
-end
-
-SearchBox:GetPropertyChangedSignal("Text"):Connect(function() updateSearch(SearchBox.Text) end)
-
-wait(0.1)
-updateSearch("")
-
--- =================== УПРАВЛЕНИЕ ===================
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.Insert then
-        MainFrame.Visible = not MainFrame.Visible
-        if MainFrame.Visible then updateSearch(SearchBox.Text) end
-    end
-    if input.KeyCode == Enum.KeyCode.X then toggleSpider() end
-end)
-
--- =================== СБРОС ПРИ РЕСПАВНЕ ===================
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-    Character = newChar
-    Humanoid = Character:WaitForChild("Humanoid")
-    RootPart = Character:WaitForChild("HumanoidRootPart")
-    
-    state.fly = false
-    state.noclip = false
+createButton("Jump x2", function
