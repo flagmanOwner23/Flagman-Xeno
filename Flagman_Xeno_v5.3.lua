@@ -1,6 +1,6 @@
--- Flagman Xeno v5.3 ULTIMATE (исправленный и дополненный)
+-- Flagman Xeno v5.3 ULTIMATE (меню по F4)
 -- Автор: good
--- Все функции активны, бинды работают через колёсико + клавиша
+-- Все функции активны, бинды через колёсико + клавиша
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -108,7 +108,7 @@ UserInputService.InputEnded:Connect(function(input,gp)
     elseif k == Enum.KeyCode.LeftShift then flyKeys.Shift = false end
 end)
 
--- =================== NOCLIP (цикл) ===================
+-- =================== NOCLIP ===================
 local function toggleNoclip()
     state.noclip = not state.noclip
     if state.noclip then
@@ -271,7 +271,7 @@ local function teleportToPlayer(name)
     end
 end
 
--- =================== ESP (исправлен) ===================
+-- =================== ESP ===================
 local function createESP(player)
     if player == LocalPlayer then return end
     local char = player.Character
@@ -363,7 +363,7 @@ local function toggleESP()
     end
 end
 
--- =================== AIMBOT (с плавностью) ===================
+-- =================== AIMBOT ===================
 local function toggleAimbot()
     state.aimbot = not state.aimbot
 end
@@ -569,7 +569,8 @@ ButtonContainer.CanvasSize = UDim2.new(0,0,0, #allButtons * 46 + 20)
 -- =================== УПРАВЛЕНИЕ ===================
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
-    if input.KeyCode == Enum.KeyCode.RightShift then
+    -- ОТКРЫТИЕ МЕНЮ ПО F4
+    if input.KeyCode == Enum.KeyCode.F4 then
         MainFrame.Visible = not MainFrame.Visible
         if MainFrame.Visible then updateSearch("") end
     end
@@ -600,7 +601,7 @@ end)
 
 print("═══════════════════════════════════════")
 print("  ✦ FLAGMAN XENO v5.3 ULTIMATE ✦")
-print("  Right Shift - меню | X - Spider")
+print("  F4 - меню | X - Spider")
 print("  FLY: WASD + Space(вверх) + Shift(вниз)")
 print("  БИНДЫ: нажмите колёсико на кнопке -> клавиша")
 print("  ДОБАВЛЕНО: Anti-AFK, Infinite Jump")
