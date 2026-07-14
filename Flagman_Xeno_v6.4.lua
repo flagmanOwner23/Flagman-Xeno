@@ -1,5 +1,6 @@
--- Flagman Xeno v6.7 (FULL FIX)
--- Исправлены все ошибки, скрипт запускается и работает стабильно
+-- Flagman Xeno v6.8 (INFINITY JUMP FIX + BANG ULTRA FAST)
+-- Infinity Jump: работает через RunService (бесконечные прыжки в воздухе)
+-- Bang: максимально быстрый пинг-понг (без задержек)
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -231,11 +232,10 @@ local function toggleInfinityJump()
     state.infinityJump = not state.infinityJump
     if state.infinityJump then
         if infinityJumpConnection then infinityJumpConnection:Disconnect() end
-        infinityJumpConnection = UserInputService.InputBegan:Connect(function(input, gp)
-            if gp then return end
-            if input.KeyCode == Enum.KeyCode.Space then
+        infinityJumpConnection = RunService.Heartbeat:Connect(function()
+            if state.infinityJump and Humanoid and Humanoid.Parent then
                 Humanoid.Jump = true
-                task.wait(0.05)
+                task.wait(0.01)
                 Humanoid.Jump = false
             end
         end)
@@ -250,7 +250,7 @@ local function toggleInfinityJump()
 end
 
 -- ============================================
--- BANG
+-- BANG (МАКСИМАЛЬНО БЫСТРЫЙ)
 -- ============================================
 local function stopBang()
     bangActive = false
@@ -294,7 +294,7 @@ local function startBang(targetName)
     end
     
     local lastMove = 0
-    local cooldown = 0.3
+    local cooldown = 0.05  -- МАКСИМАЛЬНО БЫСТРО (почти без задержки)
     
     bangConnection = RunService.Heartbeat:Connect(function()
         if not bangActive or not bangTarget or not bangTarget.Character then
@@ -327,7 +327,6 @@ local function startBang(targetName)
                 
                 bangPingPong = bangPingPong * -1
                 lastMove = now
-                print("[Xeno] Bang: " .. (bangPingPong == 1 and "вперёд" or "назад") .. " 1м")
             end
         end
     end)
@@ -594,7 +593,7 @@ local function toggleAimbot()
 end
 
 -- ============================================
--- ОБРАБОТКА БИНДОВ (глобальная)
+-- ОБРАБОТКА БИНДОВ
 -- ============================================
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
@@ -604,7 +603,7 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 -- ============================================
--- СИСТЕМА БИНДОВ (ПКМ + клавиша БЕЗ ДИАЛОГА)
+-- СИСТЕМА БИНДОВ (ПКМ + клавиша)
 -- ============================================
 local bindWaiting = nil
 
@@ -664,7 +663,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v6.7"
+Title.Text = "FLAGMAN XENO v6.8"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -879,8 +878,10 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
 end)
 
 print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v6.7 ✦")
+print("  ✦ FLAGMAN XENO v6.8 ✦")
 print("  INSERT - меню | X - Spider")
+print("  INFINITY JUMP - работает через RunService")
+print("  BANG - максимально быстрый (0.05 сек)")
 print("  БИНДЫ: ПКМ на кнопке -> нажать клавишу")
 print("  DELETE - снять бинд с функции")
 print("═══════════════════════════════════════")
