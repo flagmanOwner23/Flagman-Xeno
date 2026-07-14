@@ -1,5 +1,7 @@
--- Flagman Xeno v6.5 (FULL FIX)
--- Исправлены все ошибки, работает стабильно
+-- Flagman Xeno v6.6 (FIXED BINDS + INFINITY JUMP)
+-- Бинды: ПКМ на кнопке -> нажать клавишу (без диалогов)
+-- Delete: снять бинд
+-- Infinity Jump: работает стабильно
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -184,7 +186,6 @@ local function toggleFly2()
     end
 end
 
--- Клавиши для полёта
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if state.fly then
@@ -226,18 +227,19 @@ UserInputService.InputEnded:Connect(function(input, gp)
 end)
 
 -- ============================================
--- INFINITY JUMP
+-- INFINITY JUMP (исправлен)
 -- ============================================
 local function toggleInfinityJump()
     state.infinityJump = not state.infinityJump
     if state.infinityJump then
         if infinityJumpConnection then infinityJumpConnection:Disconnect() end
-        infinityJumpConnection = UserInputService.InputBegan:Connect(function(input, gp)
-            if gp then return end
-            if input.KeyCode == Enum.KeyCode.Space then
-                Humanoid.Jump = true
-                task.wait(0.05)
-                Humanoid.Jump = false
+        infinityJumpConnection = RunService.Heartbeat:Connect(function()
+            if state.infinityJump and Humanoid and Humanoid.Parent then
+                if Humanoid.FloorMaterial == Enum.Material.Air then
+                    Humanoid.Jump = true
+                    task.wait(0.05)
+                    Humanoid.Jump = false
+                end
             end
         end)
         print("[Xeno] Infinity Jump ON")
@@ -594,7 +596,9 @@ local function toggleAimbot()
     print("[Xeno] Aimbot " .. (state.aimbot and "ON" or "OFF"))
 end
 
--- Обработка биндов
+-- ============================================
+-- ОБРАБОТКА БИНДОВ (глобальная)
+-- ============================================
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if binds[input.KeyCode] then
@@ -603,24 +607,44 @@ UserInputService.InputBegan:Connect(function(input, gp)
 end)
 
 -- ============================================
--- СИСТЕМА БИНДОВ (ПКМ + DELETE)
+-- СИСТЕМА БИНДОВ (ПКМ + клавиша БЕЗ ДИАЛОГА)
 -- ============================================
+local bindWaiting = nil  -- Функция, ожидающая бинд
+
 local function bindFunction(key, func)
+    -- Удаляем старый бинд на эту клавишу
     if binds[key] then
         binds[key] = nil
     end
     binds[key] = func
-    print("[Xeno] ✅ Бинд: " .. tostring(key) .. " -> " .. tostring(func))
+    print("[Xeno] ✅ Бинд: " .. tostring(key.Name) .. " -> " .. tostring(func))
 end
 
-local function unbindFunction(key)
-    if binds[key] then
-        binds[key] = nil
-        print("[Xeno] ❌ Бинд снят: " .. tostring(key))
-        return true
+local function unbindFunction(func)
+    for key, f in pairs(binds) do
+        if f == func then
+            binds[key] = nil
+            print("[Xeno] ❌ Бинд снят: " .. tostring(key.Name))
+            return true
+        end
     end
     return false
 end
+
+-- Обработчик для биндов (без диалогов)
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if bindWaiting then
+        if input.KeyCode == Enum.KeyCode.Delete then
+            -- Снимаем бинд у текущей функции
+            unbindFunction(bindWaiting)
+            bindWaiting = nil
+        elseif input.KeyCode ~= Enum.KeyCode.Unknown then
+            bindFunction(input.KeyCode, bindWaiting)
+            bindWaiting = nil
+        end
+    end
+end)
 
 -- ============================================
 -- МЕНЮ
@@ -646,7 +670,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v6.5"
+Title.Text = "FLAGMAN XENO v6.6"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -708,42 +732,10 @@ local function createButton(text, callback)
         btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     end)
     
-    -- БИНД: ПРАВАЯ КНОПКА МЫШИ
+    -- БИНД: ПРАВАЯ КНОПКА МЫШИ (без диалога)
     btn.MouseButton2Click:Connect(function()
-        local dialog = Instance.new("TextBox")
-        dialog.Size = UDim2.new(0, 300, 0, 35)
-        dialog.Position = UDim2.new(0.5, -150, 0.5, -17)
-        dialog.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-        dialog.TextColor3 = Color3.fromRGB(255, 255, 255)
-        dialog.PlaceholderText = "Нажмите клавишу для бинда (Delete для удаления)"
-        dialog.ClearTextOnFocus = false
-        dialog.Font = Enum.Font.GothamMedium
-        dialog.TextScaled = true
-        dialog.Parent = MainFrame
-        dialog:CaptureFocus()
-        
-        local connection = nil
-        connection = UserInputService.InputBegan:Connect(function(input, gp)
-            if gp then return end
-            if input.KeyCode ~= Enum.KeyCode.Unknown then
-                if input.KeyCode == Enum.KeyCode.Delete then
-                    for key, func in pairs(binds) do
-                        if func == callback then
-                            unbindFunction(key)
-                        end
-                    end
-                else
-                    bindFunction(input.KeyCode, callback)
-                end
-                dialog:Destroy()
-                if connection then connection:Disconnect() end
-            end
-        end)
-        
-        dialog.FocusLost:Connect(function()
-            dialog:Destroy()
-            if connection then connection:Disconnect() end
-        end)
+        bindWaiting = callback
+        print("[Xeno] ⏳ Ожидание клавиши для бинда... (Delete для снятия)")
     end)
     
     table.insert(allButtons, {
@@ -894,9 +886,8 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
 end)
 
 print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v6.5 ✦")
+print("  ✦ FLAGMAN XENO v6.6 ✦")
 print("  INSERT - меню | X - Spider")
-print("  БИНДЫ: ПКМ на кнопке -> клавиша")
-print("  DELETE - снять бинд")
-print("  INFINITY JUMP - бесконечные прыжки")
-print("═══════════════════════════════════════")
+print("  БИНДЫ: ПКМ на кнопке -> нажать клавишу")
+print("  DELETE - снять бинд с функции")
+print("  INFINITY JUMP - работает
