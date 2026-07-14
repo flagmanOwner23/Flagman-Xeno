@@ -1,4 +1,4 @@
--- Flagman Xeno v6.3 (ПКМ БИНДЫ + DELETE + BANG FIX)
+-- Flagman Xeno v6.4 (FIXED BINDS + INFINITY JUMP)
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -24,6 +24,7 @@ local state = {
     esp = false,
     aimbot = false,
     bang = false,
+    infinityJump = false,
     speed = 1,
     jump = 1,
     flySpeed = 50,
@@ -39,7 +40,7 @@ local scaffoldConnection = nil
 local espObjects = {}
 local espConnections = {}
 local binds = {}  -- {[KeyCode] = function}
-local bindToDelete = nil  -- Функция, которую нужно удалить по Delete
+local infinityJumpConnection = nil
 
 -- ============================================
 -- ПОЛЁТ (обычный)
@@ -198,6 +199,31 @@ UserInputService.InputEnded:Connect(function(input, gp)
 end)
 
 -- ============================================
+-- INFINITY JUMP
+-- ============================================
+local function toggleInfinityJump()
+    state.infinityJump = not state.infinityJump
+    if state.infinityJump then
+        if infinityJumpConnection then infinityJumpConnection:Disconnect() end
+        infinityJumpConnection = UserInputService.InputBegan:Connect(function(input, gp)
+            if gp then return end
+            if input.KeyCode == Enum.KeyCode.Space then
+                Humanoid.Jump = true
+                task.wait(0.05)
+                Humanoid.Jump = false
+            end
+        end)
+        print("[Xeno] Infinity Jump ON")
+    else
+        if infinityJumpConnection then
+            infinityJumpConnection:Disconnect()
+            infinityJumpConnection = nil
+        end
+        print("[Xeno] Infinity Jump OFF")
+    end
+end
+
+-- ============================================
 -- BANG (ПРЕСЛЕДОВАНИЕ + ПИНГ-ПОНГ 1 МЕТР)
 -- ============================================
 local bangConnection = nil
@@ -248,7 +274,7 @@ local function startBang(targetName)
     end
     
     local lastMove = 0
-    local cooldown = 0.3  -- МИНИМАЛЬНАЯ ЗАДЕРЖКА
+    local cooldown = 0.3
     
     bangConnection = RunService.Heartbeat:Connect(function()
         if not bangActive or not bangTarget or not bangTarget.Character then
@@ -551,7 +577,6 @@ end
 -- СИСТЕМА БИНДОВ (ПКМ + DELETE)
 -- ============================================
 local function bindFunction(key, func)
-    -- Удаляем старый бинд на эту клавишу
     if binds[key] then
         binds[key] = nil
     end
@@ -568,22 +593,11 @@ local function unbindFunction(key)
     return false
 end
 
--- Обработка биндов
+-- Глобальная обработка биндов
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if binds[input.KeyCode] then
         binds[input.KeyCode]()
-    end
-    
-    -- DELETE для удаления текущего бинда (если есть выделенный)
-    if input.KeyCode == Enum.KeyCode.Delete and bindToDelete then
-        for key, func in pairs(binds) do
-            if func == bindToDelete then
-                unbindFunction(key)
-                bindToDelete = nil
-                break
-            end
-        end
     end
 end)
 
@@ -596,8 +610,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 500, 0, 650)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -325)
+MainFrame.Size = UDim2.new(0, 500, 0, 680)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -340)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 2
@@ -611,7 +625,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v6.3"
+Title.Text = "FLAGMAN XENO v6.4"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -678,8 +692,6 @@ local function createButton(text, callback)
     
     -- БИНД: ПРАВАЯ КНОПКА МЫШИ
     btn.MouseButton2Click:Connect(function()
-        bindToDelete = callback  -- Запоминаем функцию для удаления по Delete
-        
         local dialog = Instance.new("TextBox")
         dialog.Size = UDim2.new(0, 300, 0, 35)
         dialog.Position = UDim2.new(0.5, -150, 0.5, -17)
@@ -697,14 +709,12 @@ local function createButton(text, callback)
             if gameProcessed then return end
             if input.KeyCode ~= Enum.KeyCode.Unknown then
                 if input.KeyCode == Enum.KeyCode.Delete then
-                    -- Удаляем бинд у этой функции
+                    -- Удаляем все бинды у этой функции
                     for key, func in pairs(binds) do
                         if func == callback then
                             unbindFunction(key)
-                            break
                         end
                     end
-                    bindToDelete = nil
                 else
                     bindFunction(input.KeyCode, callback)
                 end
@@ -756,6 +766,7 @@ createButton("Spider [X]", toggleSpider)
 createButton("Scaffold", toggleScaffold)
 createButton("ESP", toggleESP)
 createButton("Aimbot", toggleAimbot)
+createButton("Infinity Jump", toggleInfinityJump)
 
 createButton("Bang (преследование)", function()
     local dialog = Instance.new("TextBox")
@@ -852,6 +863,7 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     state.spider = false
     state.scaffold = false
     state.bang = false
+    state.infinityJump = false
     
     if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
     if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
@@ -859,4 +871,6 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     if fly2Connection then fly2Connection:Disconnect() fly2Connection = nil end
     if noclipPart then noclipPart:Destroy() noclipPart = nil end
     if spiderConnection then spiderConnection:Disconnect() spiderConnection = nil end
-    if scaffoldConnection
+    if scaffoldConnection then scaffoldConnection:Disconnect() scaffoldConnection = nil end
+    if bangConnection then bangConnection:Disconnect() bangConnection = nil end
+    if infinityJumpConnection then
