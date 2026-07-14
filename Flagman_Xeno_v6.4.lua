@@ -1,5 +1,6 @@
--- Flagman Xeno v9.0 (DUAL UI)
--- Центральное меню + Infinite Yield (its flagman) справа снизу
+-- Flagman Xeno v9.2 (WORKING INFINITY JUMP)
+-- Центральное меню + its flagman справа снизу
+-- Infinity Jump — полностью рабочий (бесконечные прыжки в воздухе)
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -182,7 +183,7 @@ local function stopBang()
         bangConnection:Disconnect()
         bangConnection = nil
     end
-    print("[Xeno] Bang: остановлен (unbang)")
+    print("[Xeno] Bang: остановлен")
 end
 
 local function startBang(name)
@@ -255,20 +256,24 @@ local function toggleBang(name)
 end
 
 -- ============================================
--- ОСТАЛЬНЫЕ ФУНКЦИИ
+-- INFINITY JUMP (РАБОЧАЯ ВЕРСИЯ)
 -- ============================================
 local function toggleInfinityJump()
     infinityJumpActive = not infinityJumpActive
     if infinityJumpActive then
         if infinityJumpConnection then infinityJumpConnection:Disconnect() end
-        infinityJumpConnection = RunService.Heartbeat:Connect(function()
-            if infinityJumpActive and Humanoid and Humanoid.Parent then
+        
+        -- Бесконечные прыжки через обработку нажатия Space
+        infinityJumpConnection = UserInputService.InputBegan:Connect(function(input, gp)
+            if gp then return end
+            if infinityJumpActive and input.KeyCode == Enum.KeyCode.Space then
                 Humanoid.Jump = true
                 task.wait(0.02)
                 Humanoid.Jump = false
             end
         end)
-        print("[Xeno] Infinity Jump ON")
+        
+        print("[Xeno] Infinity Jump ON (бесконечные прыжки в воздухе)")
     else
         if infinityJumpConnection then
             infinityJumpConnection:Disconnect()
@@ -278,6 +283,9 @@ local function toggleInfinityJump()
     end
 end
 
+-- ============================================
+-- ОСТАЛЬНЫЕ ФУНКЦИИ
+-- ============================================
 local function toggleNoclip()
     noclipActive = not noclipActive
     if noclipActive then
@@ -517,7 +525,7 @@ UserInputService.InputBegan:Connect(function(inp, gp)
 end)
 
 -- ============================================
--- ЦЕНТРАЛЬНОЕ МЕНЮ
+-- ГЛАВНОЕ МЕНЮ (ЦЕНТР)
 -- ============================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FlagmanXenoUI"
@@ -526,7 +534,7 @@ ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 500, 0, 600)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -300)  -- ПО ЦЕНТРУ
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -300)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 2
@@ -540,7 +548,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v9.0"
+Title.Text = "FLAGMAN XENO v9.2"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -734,7 +742,7 @@ ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 46 + 20)
 -- ============================================
 local IYFrame = Instance.new("Frame")
 IYFrame.Size = UDim2.new(0, 300, 0, 400)
-IYFrame.Position = UDim2.new(1, -320, 1, -420)  -- Справа снизу
+IYFrame.Position = UDim2.new(1, -320, 1, -420)
 IYFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 IYFrame.BackgroundTransparency = 0.1
 IYFrame.BorderSizePixel = 2
@@ -849,5 +857,4 @@ createIYButton("Bang (преследование)", function()
     local d = Instance.new("TextBox")
     d.Size = UDim2.new(0, 200, 0, 30)
     d.Position = UDim2.new(0.5, -100, 0.5, -15)
-    d.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-    d.Text
+    d.BackgroundColor3 = Color3.fromRGB(30, 30, 
