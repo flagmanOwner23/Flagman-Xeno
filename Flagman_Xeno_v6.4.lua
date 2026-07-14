@@ -1,5 +1,6 @@
--- Flagman Xeno v7.5 (IY PERFECT COPY)
--- Jerk, Fly, Bang, Infinity Jump — точные копии из Infinite Yield
+-- Flagman Xeno v8.1 (UNBANG)
+-- Добавлена команда unbang для остановки преследования
+-- IY интерфейс, Fly/Jerk/Bang как в IY
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -56,7 +57,7 @@ local binds = {}
 local bindWaiting = nil
 
 -- ============================================
--- FLY (ИДЕАЛЬНАЯ КОПИЯ ИЗ IY)
+-- FLY (IY)
 -- ============================================
 local function updateFly()
     if not flyActive or not RootPart then return end
@@ -113,7 +114,6 @@ local function setFlySpeed(val)
     print("[Xeno] Fly Speed: " .. flySpeed)
 end
 
--- Клавиши для полёта
 UserInputService.InputBegan:Connect(function(inp, gp)
     if gp then return end
     if flyActive then
@@ -139,17 +139,15 @@ UserInputService.InputEnded:Connect(function(inp, gp)
 end)
 
 -- ============================================
--- JERK (ТОЧНАЯ КОПИЯ ИЗ IY)
+-- JERK (IY)
 -- ============================================
 local function jerk()
     if not RootPart then return end
     local dir = RootPart.CFrame.LookVector
     local power = 200
     
-    -- Основной импульс
     RootPart.Velocity = dir * power
     
-    -- След (как в IY)
     for i = 1, 10 do
         local trail = Instance.new("Part")
         trail.Size = Vector3.new(0.5, 0.5, 0.5)
@@ -164,7 +162,6 @@ local function jerk()
         TweenService:Create(trail, TweenInfo.new(2), {Transparency = 1}):Play()
     end
     
-    -- Затухание (как в IY)
     local bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(1, 1, 1) * 50000
     bv.Velocity = dir * power * 0.3
@@ -175,7 +172,7 @@ local function jerk()
 end
 
 -- ============================================
--- BANG (ПРЕСЛЕДОВАНИЕ КАК В IY)
+-- BANG / UNBANG (IY)
 -- ============================================
 local function stopBang()
     bangActive = false
@@ -186,7 +183,7 @@ local function stopBang()
         bangConnection:Disconnect()
         bangConnection = nil
     end
-    print("[Xeno] Bang: остановлен")
+    print("[Xeno] Bang: остановлен (unbang)")
 end
 
 local function startBang(name)
@@ -230,13 +227,11 @@ local function startBang(name)
         local dist = (RootPart.Position - targetRoot.Position).Magnitude
         
         if dist > 5 then
-            -- Летим к цели
             local dir = (targetRoot.Position - RootPart.Position).Unit
             if bodyVelocity then
                 bodyVelocity.Velocity = dir * flySpeed
             end
         else
-            -- Пинг-понг (вперёд-назад)
             local now = tick()
             if now - bangLastMove >= 0.05 then
                 local offset = Vector3.new(0, 0, 1 * bangPingPong)
@@ -261,7 +256,7 @@ local function toggleBang(name)
 end
 
 -- ============================================
--- INFINITY JUMP (БЕСКОНЕЧНЫЕ ПРЫЖКИ)
+-- ОСТАЛЬНЫЕ ФУНКЦИИ
 -- ============================================
 local function toggleInfinityJump()
     infinityJumpActive = not infinityJumpActive
@@ -283,10 +278,6 @@ local function toggleInfinityJump()
         print("[Xeno] Infinity Jump OFF")
     end
 end
-
--- ============================================
--- ОСТАЛЬНЫЕ ФУНКЦИИ
--- ============================================
 
 local function toggleNoclip()
     noclipActive = not noclipActive
@@ -527,7 +518,7 @@ UserInputService.InputBegan:Connect(function(inp, gp)
 end)
 
 -- ============================================
--- МЕНЮ
+-- IY ИНТЕРФЕЙС
 -- ============================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "FlagmanXenoUI"
@@ -535,9 +526,9 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 500, 0, 720)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -360)
-MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
+MainFrame.Size = UDim2.new(0, 400, 0, 500)
+MainFrame.Position = UDim2.new(1, -420, 1, -520)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 2
 MainFrame.BorderColor3 = Color3.fromRGB(255, 80, 80)
@@ -546,19 +537,19 @@ MainFrame.Parent = ScreenGui
 MainFrame.Visible = false
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Size = UDim2.new(1, 0, 0, 40)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v7.5 (IY PERFECT)"
+Title.Text = "FLAGMAN XENO v8.1"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
 Title.Parent = MainFrame
 
 local SearchBox = Instance.new("TextBox")
-SearchBox.Size = UDim2.new(1, -20, 0, 35)
-SearchBox.Position = UDim2.new(0, 10, 0, 55)
+SearchBox.Size = UDim2.new(1, -10, 0, 35)
+SearchBox.Position = UDim2.new(0, 5, 0, 45)
 SearchBox.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
 SearchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 SearchBox.PlaceholderText = "🔍 Поиск функции..."
@@ -572,8 +563,8 @@ SearchBox.BorderColor3 = Color3.fromRGB(255, 80, 80)
 SearchBox.Parent = MainFrame
 
 local ButtonContainer = Instance.new("ScrollingFrame")
-ButtonContainer.Size = UDim2.new(1, -20, 1, -110)
-ButtonContainer.Position = UDim2.new(0, 10, 0, 95)
+ButtonContainer.Size = UDim2.new(1, -10, 1, -100)
+ButtonContainer.Position = UDim2.new(0, 5, 0, 85)
 ButtonContainer.BackgroundTransparency = 1
 ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
 ButtonContainer.ScrollBarThickness = 6
@@ -588,7 +579,7 @@ local allButtons = {}
 
 local function createButton(text, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 40)
+    btn.Size = UDim2.new(1, 0, 0, 35)
     btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     btn.Text = text
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -632,7 +623,7 @@ local function updateSearch(query)
             data.button.Visible = false
         end
     end
-    ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, count * 46 + 20)
+    ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, count * 41 + 20)
 end
 
 SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
@@ -678,6 +669,11 @@ createButton("Bang (преследование)", function()
         end
         d:Destroy()
     end)
+end)
+
+-- КНОПКА UNBANG (остановка преследования)
+createButton("Unbang (остановить преследование)", function()
+    stopBang()
 end)
 
 createButton("Kill All", function()
@@ -733,7 +729,7 @@ createButton("Clear Parts", function()
 end)
 
 task.wait(0.1)
-ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 46 + 20)
+ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 41 + 20)
 
 -- ============================================
 -- УПРАВЛЕНИЕ
@@ -783,9 +779,10 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
 end)
 
 print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v7.5 ✦")
-print("  INSERT - меню | X - Spider")
+print("  ✦ FLAGMAN XENO v8.1 ✦")
+print("  INSERT - открыть меню (справа снизу)")
+print("  X - Spider")
 print("  БИНДЫ: ПКМ на кнопке -> нажать клавишу")
 print("  DELETE - снять бинд")
-print("  IY PERFECT COPY: Jerk, Fly, Bang, Infinity Jump")
+print("  UNBANG - остановить преследование")
 print("═══════════════════════════════════════")
