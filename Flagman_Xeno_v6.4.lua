@@ -1,6 +1,6 @@
--- Flagman Xeno v7.2 (JERK + IY STYLE)
+-- Flagman Xeno v7.3 (FULL FIX)
 -- Fly с регулировкой скорости, Bang и Jerk как в Infinite Yield
--- Исправлены все ошибки
+-- Исправлены все ошибки, работает через Xeno
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -13,6 +13,7 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
+-- Ожидание загрузки персонажа
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
 local RootPart = Character:WaitForChild("HumanoidRootPart")
@@ -78,7 +79,9 @@ local function stopFly()
         fly2Connection:Disconnect()
         fly2Connection = nil
     end
-    Humanoid.PlatformStand = false
+    if Humanoid then
+        Humanoid.PlatformStand = false
+    end
     state.fly = false
     state.fly2 = false
 end
@@ -126,7 +129,7 @@ local function toggleFly()
         bodyGyro.Parent = RootPart
         
         flyConnection = RunService.Heartbeat:Connect(updateFly)
-        Humanoid.PlatformStand = true
+        if Humanoid then Humanoid.PlatformStand = true end
         print("[Xeno] Fly ON (Speed: " .. state.flySpeed .. ")")
     else
         stopFly()
@@ -182,7 +185,7 @@ local function toggleFly2()
         bodyGyro.Parent = RootPart
         
         fly2Connection = RunService.Heartbeat:Connect(updateFly2)
-        Humanoid.PlatformStand = true
+        if Humanoid then Humanoid.PlatformStand = true end
         print("[Xeno] Fly X2 ON (Speed: " .. state.fly2Speed .. ")")
     else
         stopFly()
@@ -263,10 +266,8 @@ local function jerk()
     local direction = RootPart.CFrame.LookVector
     local power = 200
     
-    -- Основной рывок
     RootPart.Velocity = direction * power
     
-    -- Создаём след (эффект как в IY)
     for i = 1, 10 do
         local trail = Instance.new("Part")
         trail.Size = Vector3.new(0.5, 0.5, 0.5)
@@ -281,7 +282,6 @@ local function jerk()
         TweenService:Create(trail, TweenInfo.new(2), {Transparency = 1}):Play()
     end
     
-    -- Затухание скорости (как в IY)
     local bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(1, 1, 1) * 50000
     bv.Velocity = direction * power * 0.3
@@ -729,7 +729,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v7.2 (IY Style)"
+Title.Text = "FLAGMAN XENO v7.3"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -889,4 +889,4 @@ createButton("Teleport", function()
     dialog.Size = UDim2.new(0, 200, 0, 30)
     dialog.Position = UDim2.new(0.5, -100, 0.5, -15)
     dialog.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-    dialog.TextColor3 = Color3.fromRGB(255, 
+   
