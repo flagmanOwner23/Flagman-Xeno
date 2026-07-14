@@ -1,7 +1,7 @@
--- Flagman Xeno v5.3 ULTIMATE (Fly x1/x2 + BANG + ESP + бинды)
+-- Flagman Xeno v5.3 ULTIMATE
 -- Автор: good
--- Меню: Insert | Бинды: ПКМ по кнопке | Удаление бинда: Delete
--- GitHub: https://github.com/ваш-ник/Flagman-Xeno
+-- GitHub: https://github.com/FlagmanOwner23/Flagman-Xeno
+-- Меню: Insert | Бинды: ПКМ по кнопке | Удаление: Delete
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
@@ -182,7 +182,7 @@ local function setBangTarget(playerName)
     print("[Xeno] Игрок не найден: " .. playerName)
 end
 
--- =================== ОСТАЛЬНЫЕ ФУНКЦИИ ===================
+-- =================== NOCLIP ===================
 local function toggleNoclip()
     state.noclip = not state.noclip
     if state.noclip then
@@ -204,6 +204,7 @@ local function toggleNoclip()
     end
 end
 
+-- =================== GOD ===================
 local function toggleGod()
     state.god = not state.god
     if state.god then
@@ -219,6 +220,7 @@ local function toggleGod()
     end
 end
 
+-- =================== SPIDER ===================
 local function toggleSpider()
     state.spider = not state.spider
     if state.spider then
@@ -242,6 +244,7 @@ local function toggleSpider()
     end
 end
 
+-- =================== SCAFFOLD ===================
 local function toggleScaffold()
     state.scaffold = not state.scaffold
     if state.scaffold then
@@ -271,6 +274,7 @@ local function toggleScaffold()
     end
 end
 
+-- =================== ANTI-AFK ===================
 local function toggleAntiAFK()
     state.antiAFK = not state.antiAFK
     if state.antiAFK then
@@ -288,6 +292,7 @@ local function toggleAntiAFK()
     end
 end
 
+-- =================== INFINITE JUMP ===================
 local function toggleInfiniteJump()
     state.infiniteJump = not state.infiniteJump
     if state.infiniteJump then
@@ -304,6 +309,7 @@ local function toggleInfiniteJump()
     end
 end
 
+-- =================== SPEED / JUMP ===================
 local function setSpeed(v)
     state.speed = v or 1
     Humanoid.WalkSpeed = 16 * state.speed
@@ -316,6 +322,7 @@ local function setJump(v)
     print("[Xeno] Jump: " .. Humanoid.JumpPower)
 end
 
+-- =================== CLEAR / KILL / TP ===================
 local function clearAll()
     local count = 0
     for _, part in ipairs(Workspace:GetDescendants()) do
@@ -481,6 +488,7 @@ local function toggleESP()
     end
 end
 
+-- =================== AIMBOT ===================
 local function toggleAimbot()
     state.aimbot = not state.aimbot
     print("[Xeno] Aimbot " .. (state.aimbot and "ON" or "OFF"))
@@ -752,7 +760,7 @@ createButton("Reset Jump", function() setJump(1) end)
 createButton("Clear Parts", clearAll)
 createButton("Kill All", killAll)
 
--- BANG
+-- =================== BANG ===================
 local bangButton = createButton("BANG (преследовать игрока)", toggleBang)
 bangButton.MouseButton2Click:Connect(function()
     if currentBindDialog and currentBindDialog.Parent then
@@ -767,18 +775,4 @@ bangButton.MouseButton2Click:Connect(function()
     dialog.BorderColor3 = Color3.fromRGB(255,80,80)
     dialog.Parent = MainFrame
     currentBindDialog = dialog
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1,0,0,30)
-    label.Position = UDim2.new(0,0,0,5)
-    label.BackgroundTransparency = 1
-    label.Text = "Введите ник цели для BANG"
-    label.TextColor3 = Color3.fromRGB(255,255,255)
-    label.TextScaled = true
-    label.Font = Enum.Font.GothamMedium
-    label.Parent = dialog
-    local inputBox = Instance.new("TextBox")
-    inputBox.Size = UDim2.new(1,-20,0,35)
-    inputBox.Position = UDim2.new(0,10,0,40)
-    inputBox.BackgroundColor3 = Color3.fromRGB(40,40,60)
-    inputBox.TextColor3 = Color3.fromRGB(255,255,255)
-    inputBox.PlaceholderText = "Ник игрока..."
+    local label = Instance.new("
