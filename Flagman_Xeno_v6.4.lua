@@ -1,6 +1,6 @@
--- Flagman Xeno v10.2 (DUAL UI + PURPLE THEME)
--- Центральное меню + its flagman справа снизу
--- Фиолетовое оформление
+-- Flagman Xeno v10.3 (FULL FIX)
+-- Центр + its flagman справа снизу
+-- Фиолетовая тема, все функции работают
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -102,7 +102,8 @@ local function setFlySpeed(val)
     print("[Xeno] Fly Speed: " .. flySpeed)
 end
 
-UserInputService.InputBegan:Connect(function(inp)
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if gp then return end
     if flyActive then
         if inp.KeyCode == Enum.KeyCode.W then flyKeys.W = true end
         if inp.KeyCode == Enum.KeyCode.A then flyKeys.A = true end
@@ -113,7 +114,8 @@ UserInputService.InputBegan:Connect(function(inp)
     end
 end)
 
-UserInputService.InputEnded:Connect(function(inp)
+UserInputService.InputEnded:Connect(function(inp, gp)
+    if gp then return end
     if flyActive then
         if inp.KeyCode == Enum.KeyCode.W then flyKeys.W = false end
         if inp.KeyCode == Enum.KeyCode.A then flyKeys.A = false end
@@ -132,7 +134,7 @@ local function toggleSpider()
     if spiderActive then
         if spiderConnection then spiderConnection:Disconnect() end
         spiderConnection = RunService.Heartbeat:Connect(function()
-            if spiderActive and RootPart and Humanoid then
+            if spiderActive and RootPart and RootPart.Parent and Humanoid then
                 local ray = Ray.new(RootPart.Position, RootPart.CFrame.LookVector * 3)
                 local hit = Workspace:FindPartOnRay(ray, Character)
                 if hit then
@@ -267,7 +269,8 @@ local function toggleInfinityJump()
     infinityJumpActive = not infinityJumpActive
     if infinityJumpActive then
         if infinityJumpConnection then infinityJumpConnection:Disconnect() end
-        infinityJumpConnection = UserInputService.InputBegan:Connect(function(inp)
+        infinityJumpConnection = UserInputService.InputBegan:Connect(function(inp, gp)
+            if gp then return end
             if inp.KeyCode == Enum.KeyCode.Space then
                 Humanoid.Jump = true
                 task.wait(0.02)
@@ -287,7 +290,9 @@ end
 -- ============================================
 -- БИНДЫ
 -- ============================================
-UserInputService.InputBegan:Connect(function(inp)
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if gp then return end
+    
     if binds[inp.KeyCode] then
         binds[inp.KeyCode]()
     end
@@ -321,7 +326,7 @@ ScreenGui.Parent = CoreGui
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 450, 0, 550)
 MainFrame.Position = UDim2.new(0.5, -225, 0.5, -275)
-MainFrame.BackgroundColor3 = Color3.fromRGB(40, 20, 60)  -- ФИОЛЕТОВЫЙ
+MainFrame.BackgroundColor3 = Color3.fromRGB(40, 20, 60)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 2
 MainFrame.BorderColor3 = Color3.fromRGB(180, 100, 255)
@@ -409,7 +414,7 @@ local function updateSearch(query)
     query = query:lower()
     local count = 0
     for _, data in ipairs(allButtons) do
-        if query == "" or data.text:find(query, 1, true) then
+        if query == "" or string.find(data.text, query, 1, true) then
             data.button.Visible = true
             count = count + 1
         else
@@ -467,7 +472,7 @@ createButton("Teleport", function()
     d.FocusLost:Connect(function(entered)
         if entered and d.Text ~= "" then
             for _, plr in ipairs(Players:GetPlayers()) do
-                if plr.Name:lower():find(d.Text:lower()) then
+                if string.find(plr.Name:lower(), d.Text:lower(), 1, true) then
                     local char = plr.Character
                     if char and char:FindFirstChild("HumanoidRootPart") then
                         RootPart.CFrame = char.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
@@ -498,7 +503,7 @@ task.wait(0.1)
 ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 36 + 20)
 
 -- ============================================
--- ITS FLAGMAN (СПРАВА СНИЗУ) — ФИОЛЕТОВЫЙ
+-- ITS FLAGMAN (СПРАВА СНИЗУ)
 -- ============================================
 local IYFrame = Instance.new("Frame")
 IYFrame.Size = UDim2.new(0, 320, 0, 420)
@@ -591,7 +596,7 @@ local function updateIYSearch(query)
     query = query:lower()
     local count = 0
     for _, data in ipairs(iyButtons) do
-        if query == "" or data.text:find(query, 1, true) then
+        if query == "" or string.find(data.text, query, 1, true) then
             data.button.Visible = true
             count = count + 1
         else
@@ -643,7 +648,7 @@ createIYButton("Teleport", function()
     d.FocusLost:Connect(function(entered)
         if entered and d.Text ~= "" then
             for _, plr in ipairs(Players:GetPlayers()) do
-                if plr.Name:lower():find(d.Text:lower()) then
+                if string.find(plr.Name:lower(), d.Text:lower(), 1, true) then
                     local char = plr.Character
                     if char and char:FindFirstChild("HumanoidRootPart") then
                         RootPart.CFrame = char.HumanoidRootPart.CFrame + Vector3.new(0, 3, 0)
@@ -663,21 +668,24 @@ IYContainer.CanvasSize = UDim2.new(0, 0, 0, #iyButtons * 32 + 20)
 -- ============================================
 -- УПРАВЛЕНИЕ
 -- ============================================
-UserInputService.InputBegan:Connect(function(inp)
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if gp then return end
     if inp.KeyCode == Enum.KeyCode.Insert then
         MainFrame.Visible = not MainFrame.Visible
         if MainFrame.Visible then updateSearch("") end
     end
 end)
 
-UserInputService.InputBegan:Connect(function(inp)
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if gp then return end
     if inp.KeyCode == Enum.KeyCode.RightShift then
         IYFrame.Visible = not IYFrame.Visible
         if IYFrame.Visible then updateIYSearch("") end
     end
 end)
 
-UserInputService.InputBegan:Connect(function(inp)
+UserInputService.InputBegan:Connect(function(inp, gp)
+    if gp then return end
     if inp.KeyCode == Enum.KeyCode.X then
         toggleSpider()
     end
@@ -710,7 +718,7 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
 end)
 
 print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v10.2 ✦")
+print("  ✦ FLAGMAN XENO v10.3 ✦")
 print("  INSERT - центральное меню")
 print("  Right Shift - ITS FLAGMAN (справа снизу)")
 print("  X - Spider")
