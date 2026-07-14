@@ -1,11 +1,12 @@
--- Flagman Xeno v7.1 (IY Style)
--- Fly с регулировкой скорости, Bang как в Infinite Yield
+-- Flagman Xeno v7.2 (JERK + IY STYLE)
+-- Fly с регулировкой скорости, Bang и Jerk как в Infinite Yield
 -- Исправлены все ошибки
 -- Автор: good
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
 local Camera = workspace.CurrentCamera
@@ -26,6 +27,7 @@ local state = {
     esp = false,
     aimbot = false,
     bang = false,
+    jerk = false,
     infinityJump = false,
     speed = 1,
     jump = 1,
@@ -188,7 +190,6 @@ local function toggleFly2()
     end
 end
 
--- Управление клавишами для полёта
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if state.fly then
@@ -249,9 +250,45 @@ local function bang()
     flash.Transparency = 0.5
     flash.Parent = workspace
     game:GetService("Debris"):AddItem(flash, 0.5)
-    game:GetService("TweenService"):Create(flash, TweenInfo.new(0.5), {Transparency = 1}):Play()
+    TweenService:Create(flash, TweenInfo.new(0.5), {Transparency = 1}):Play()
     
     print("[Xeno] Bang!")
+end
+
+-- ============================================
+-- JERK (ТОЧНАЯ КОПИЯ ИЗ INFINITE YIELD)
+-- ============================================
+local function jerk()
+    if not RootPart then return end
+    local direction = RootPart.CFrame.LookVector
+    local power = 200
+    
+    -- Основной рывок
+    RootPart.Velocity = direction * power
+    
+    -- Создаём след (эффект как в IY)
+    for i = 1, 10 do
+        local trail = Instance.new("Part")
+        trail.Size = Vector3.new(0.5, 0.5, 0.5)
+        trail.Position = RootPart.Position - direction * (i * 2)
+        trail.Anchored = true
+        trail.CanCollide = false
+        trail.BrickColor = BrickColor.new("Cyan")
+        trail.Material = Enum.Material.Neon
+        trail.Transparency = 0.8 - (i * 0.07)
+        trail.Parent = workspace
+        game:GetService("Debris"):AddItem(trail, 2)
+        TweenService:Create(trail, TweenInfo.new(2), {Transparency = 1}):Play()
+    end
+    
+    -- Затухание скорости (как в IY)
+    local bv = Instance.new("BodyVelocity")
+    bv.MaxForce = Vector3.new(1, 1, 1) * 50000
+    bv.Velocity = direction * power * 0.3
+    bv.Parent = RootPart
+    game:GetService("Debris"):AddItem(bv, 1.5)
+    
+    print("[Xeno] Jerk!")
 end
 
 -- ============================================
@@ -677,8 +714,8 @@ ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = CoreGui
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 500, 0, 720)
-MainFrame.Position = UDim2.new(0.5, -250, 0.5, -360)
+MainFrame.Size = UDim2.new(0, 500, 0, 760)
+MainFrame.Position = UDim2.new(0.5, -250, 0.5, -380)
 MainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 2
@@ -692,7 +729,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v7.1 (IY Style)"
+Title.Text = "FLAGMAN XENO v7.2 (IY Style)"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -807,6 +844,7 @@ createButton("Aimbot", toggleAimbot)
 createButton("Infinity Jump", toggleInfinityJump)
 
 createButton("Bang (рывок)", bang)
+createButton("Jerk (рывок с эффектом)", jerk)
 
 createButton("Bang (преследование)", function()
     local dialog = Instance.new("TextBox")
@@ -851,59 +889,4 @@ createButton("Teleport", function()
     dialog.Size = UDim2.new(0, 200, 0, 30)
     dialog.Position = UDim2.new(0.5, -100, 0.5, -15)
     dialog.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
-    dialog.TextColor3 = Color3.fromRGB(255, 255, 255)
-    dialog.PlaceholderText = "Имя игрока"
-    dialog.ClearTextOnFocus = false
-    dialog.Parent = MainFrame
-    dialog:CaptureFocus()
-    dialog.FocusLost:Connect(function(enterPressed)
-        if enterPressed and dialog.Text ~= "" then
-            teleportToPlayer(dialog.Text)
-        end
-        dialog:Destroy()
-    end)
-end)
-
-task.wait(0.1)
-ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 46 + 20)
-
--- ============================================
--- УПРАВЛЕНИЕ
--- ============================================
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.Insert then
-        MainFrame.Visible = not MainFrame.Visible
-        if MainFrame.Visible then
-            updateSearch("")
-        end
-    end
-end)
-
-UserInputService.InputBegan:Connect(function(input, gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.X then
-        toggleSpider()
-    end
-end)
-
--- ============================================
--- СБРОС ПРИ ПЕРЕРОЖДЕНИИ
--- ============================================
-LocalPlayer.CharacterAdded:Connect(function(newChar)
-    Character = newChar
-    Humanoid = Character:WaitForChild("Humanoid")
-    RootPart = Character:WaitForChild("HumanoidRootPart")
-    
-    stopFly()
-    state.noclip = false
-    state.god = false
-    state.spider = false
-    state.scaffold = false
-    state.bang = false
-    state.infinityJump = false
-    
-    if noclipPart then noclipPart:Destroy() noclipPart = nil end
-    if spiderConnection then spiderConnection:Disconnect() spiderConnection = nil end
-    if scaffoldConnection then scaffoldConnection:Disconnect
+    dialog.TextColor3 = Color3.fromRGB(255, 
