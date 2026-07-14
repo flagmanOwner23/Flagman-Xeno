@@ -1,4 +1,5 @@
--- Flagman Xeno v6.4 (FIXED BINDS + INFINITY JUMP)
+-- Flagman Xeno v6.5 (FULL FIX)
+-- Исправлены все ошибки, работает стабильно
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -39,8 +40,41 @@ local spiderConnection = nil
 local scaffoldConnection = nil
 local espObjects = {}
 local espConnections = {}
-local binds = {}  -- {[KeyCode] = function}
+local binds = {}
 local infinityJumpConnection = nil
+local bangConnection = nil
+local bangActive = false
+local bangTarget = nil
+local bangPingPong = 1
+
+-- ============================================
+-- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+-- ============================================
+local function clearBodyVelocity()
+    if bodyVelocity then
+        bodyVelocity:Destroy()
+        bodyVelocity = nil
+    end
+    if bodyGyro then
+        bodyGyro:Destroy()
+        bodyGyro = nil
+    end
+end
+
+local function stopFly()
+    clearBodyVelocity()
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+    if fly2Connection then
+        fly2Connection:Disconnect()
+        fly2Connection = nil
+    end
+    Humanoid.PlatformStand = false
+    state.fly = false
+    state.fly2 = false
+end
 
 -- ============================================
 -- ПОЛЁТ (обычный)
@@ -74,8 +108,7 @@ local function toggleFly()
     if state.fly2 then toggleFly2() end
     state.fly = not state.fly
     if state.fly then
-        if bodyVelocity then bodyVelocity:Destroy() end
-        if bodyGyro then bodyGyro:Destroy() end
+        clearBodyVelocity()
         if flyConnection then flyConnection:Disconnect() end
         
         bodyVelocity = Instance.new("BodyVelocity")
@@ -92,10 +125,7 @@ local function toggleFly()
         Humanoid.PlatformStand = true
         print("[Xeno] Fly ON")
     else
-        if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
-        if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
-        if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-        Humanoid.PlatformStand = false
+        stopFly()
         print("[Xeno] Fly OFF")
     end
 end
@@ -132,8 +162,7 @@ local function toggleFly2()
     if state.fly then toggleFly() end
     state.fly2 = not state.fly2
     if state.fly2 then
-        if bodyVelocity then bodyVelocity:Destroy() end
-        if bodyGyro then bodyGyro:Destroy() end
+        clearBodyVelocity()
         if fly2Connection then fly2Connection:Disconnect() end
         
         bodyVelocity = Instance.new("BodyVelocity")
@@ -150,14 +179,12 @@ local function toggleFly2()
         Humanoid.PlatformStand = true
         print("[Xeno] Fly X2 ON")
     else
-        if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
-        if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
-        if fly2Connection then fly2Connection:Disconnect() fly2Connection = nil end
-        Humanoid.PlatformStand = false
+        stopFly()
         print("[Xeno] Fly X2 OFF")
     end
 end
 
+-- Клавиши для полёта
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if state.fly then
@@ -224,14 +251,8 @@ local function toggleInfinityJump()
 end
 
 -- ============================================
--- BANG (ПРЕСЛЕДОВАНИЕ + ПИНГ-ПОНГ 1 МЕТР)
+-- BANG
 -- ============================================
-local bangConnection = nil
-local bangTarget = nil
-local bangActive = false
-local bangPingPong = 1
-local bangStep = 1
-
 local function stopBang()
     bangActive = false
     bangTarget = nil
@@ -297,7 +318,7 @@ local function startBang(targetName)
         else
             local now = tick()
             if now - lastMove >= cooldown then
-                local offset = Vector3.new(0, 0, bangStep * bangPingPong)
+                local offset = Vector3.new(0, 0, 1 * bangPingPong)
                 local targetPos = targetRoot.Position + offset
                 local dir = (targetPos - RootPart.Position).Unit
                 
@@ -532,7 +553,7 @@ local function toggleESP()
         
         Players.PlayerAdded:Connect(function(player)
             player.CharacterAdded:Connect(function()
-                wait(0.5)
+                task.wait(0.5)
                 if state.esp then createESP(player) end
             end)
         end)
@@ -573,6 +594,14 @@ local function toggleAimbot()
     print("[Xeno] Aimbot " .. (state.aimbot and "ON" or "OFF"))
 end
 
+-- Обработка биндов
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if binds[input.KeyCode] then
+        binds[input.KeyCode]()
+    end
+end)
+
 -- ============================================
 -- СИСТЕМА БИНДОВ (ПКМ + DELETE)
 -- ============================================
@@ -592,14 +621,6 @@ local function unbindFunction(key)
     end
     return false
 end
-
--- Глобальная обработка биндов
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if binds[input.KeyCode] then
-        binds[input.KeyCode]()
-    end
-end)
 
 -- ============================================
 -- МЕНЮ
@@ -625,7 +646,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v6.4"
+Title.Text = "FLAGMAN XENO v6.5"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -661,9 +682,6 @@ UIListLayout.Parent = ButtonContainer
 
 local allButtons = {}
 
--- ============================================
--- КНОПКИ (ПКМ ДЛЯ БИНДА)
--- ============================================
 local function createButton(text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 40)
@@ -705,11 +723,10 @@ local function createButton(text, callback)
         dialog:CaptureFocus()
         
         local connection = nil
-        connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if gameProcessed then return end
+        connection = UserInputService.InputBegan:Connect(function(input, gp)
+            if gp then return end
             if input.KeyCode ~= Enum.KeyCode.Unknown then
                 if input.KeyCode == Enum.KeyCode.Delete then
-                    -- Удаляем все бинды у этой функции
                     for key, func in pairs(binds) do
                         if func == callback then
                             unbindFunction(key)
@@ -831,8 +848,8 @@ ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 46 + 20)
 -- УПРАВЛЕНИЕ
 -- ============================================
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
     if input.KeyCode == Enum.KeyCode.Insert then
         MainFrame.Visible = not MainFrame.Visible
         if MainFrame.Visible then
@@ -841,8 +858,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
     if input.KeyCode == Enum.KeyCode.X then
         toggleSpider()
     end
@@ -856,8 +873,7 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     Humanoid = Character:WaitForChild("Humanoid")
     RootPart = Character:WaitForChild("HumanoidRootPart")
     
-    state.fly = false
-    state.fly2 = false
+    stopFly()
     state.noclip = false
     state.god = false
     state.spider = false
@@ -865,12 +881,22 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     state.bang = false
     state.infinityJump = false
     
-    if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
-    if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
-    if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-    if fly2Connection then fly2Connection:Disconnect() fly2Connection = nil end
     if noclipPart then noclipPart:Destroy() noclipPart = nil end
     if spiderConnection then spiderConnection:Disconnect() spiderConnection = nil end
     if scaffoldConnection then scaffoldConnection:Disconnect() scaffoldConnection = nil end
     if bangConnection then bangConnection:Disconnect() bangConnection = nil end
-    if infinityJumpConnection then
+    if infinityJumpConnection then infinityJumpConnection:Disconnect() infinityJumpConnection = nil end
+    
+    setSpeed(1)
+    setJump(1)
+    
+    print("[Xeno] Character reset")
+end)
+
+print("═══════════════════════════════════════")
+print("  ✦ FLAGMAN XENO v6.5 ✦")
+print("  INSERT - меню | X - Spider")
+print("  БИНДЫ: ПКМ на кнопке -> клавиша")
+print("  DELETE - снять бинд")
+print("  INFINITY JUMP - бесконечные прыжки")
+print("═══════════════════════════════════════")
