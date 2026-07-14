@@ -1,5 +1,5 @@
--- Flagman Xeno v6.1 (BANG PING-PONG 1 METER)
--- Bang: при достижении игрока движение 1м назад → 1м вперёд
+-- Flagman Xeno v6.2 (FIXED BINDS + BANG)
+-- Полностью переработаны бинды и Bang
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -39,7 +39,7 @@ local spiderConnection = nil
 local scaffoldConnection = nil
 local espObjects = {}
 local espConnections = {}
-local binds = {}
+local binds = {}  -- {[KeyCode] = function}
 
 -- ============================================
 -- ПОЛЁТ (обычный)
@@ -89,7 +89,7 @@ local function toggleFly()
         
         flyConnection = RunService.Heartbeat:Connect(updateFly)
         Humanoid.PlatformStand = true
-        print("[Xeno] Fly ON (Speed: " .. state.flySpeed .. ")")
+        print("[Xeno] Fly ON")
     else
         if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
         if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
@@ -147,7 +147,7 @@ local function toggleFly2()
         
         fly2Connection = RunService.Heartbeat:Connect(updateFly2)
         Humanoid.PlatformStand = true
-        print("[Xeno] Fly X2 ON (Speed: " .. state.fly2Speed .. ")")
+        print("[Xeno] Fly X2 ON")
     else
         if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
         if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
@@ -203,8 +203,8 @@ end)
 local bangConnection = nil
 local bangTarget = nil
 local bangActive = false
-local bangPingPong = 1  -- 1 = вперёд, -1 = назад
-local bangStep = 1      -- 1 метр
+local bangPingPong = 1
+local bangStep = 1
 
 local function stopBang()
     bangActive = false
@@ -243,13 +243,12 @@ local function startBang(targetName)
     bangPingPong = 1
     print("[Xeno] Bang: преследую " .. target.Name)
     
-    -- Включаем полёт
     if not state.fly and not state.fly2 then
         toggleFly()
     end
     
-    local lastPingPongTime = 0
-    local pingPongCooldown = 0.8  -- задержка между движениями
+    local lastMove = 0
+    local cooldown = 0.8
     
     bangConnection = RunService.Heartbeat:Connect(function()
         if not bangActive or not bangTarget or not bangTarget.Character then
@@ -265,15 +264,13 @@ local function startBang(targetName)
         local distance = (RootPart.Position - targetRoot.Position).Magnitude
         
         if distance > 5 then
-            -- Летим к цели
-            local direction = (targetRoot.Position - RootPart.Position).Unit
+            local dir = (targetRoot.Position - RootPart.Position).Unit
             if bodyVelocity then
-                bodyVelocity.Velocity = direction * state.flySpeed
+                bodyVelocity.Velocity = dir * state.flySpeed
             end
         else
-            -- Пинг-понг: 1 метр назад, затем 1 метр вперёд
             local now = tick()
-            if now - lastPingPongTime >= pingPongCooldown then
+            if now - lastMove >= cooldown then
                 local offset = Vector3.new(0, 0, bangStep * bangPingPong)
                 local targetPos = targetRoot.Position + offset
                 local dir = (targetPos - RootPart.Position).Unit
@@ -282,10 +279,9 @@ local function startBang(targetName)
                     bodyVelocity.Velocity = dir * state.flySpeed * 0.5
                 end
                 
-                -- Меняем направление
                 bangPingPong = bangPingPong * -1
-                lastPingPongTime = now
-                print("[Xeno] Bang: движение " .. (bangPingPong == 1 and "вперёд" or "назад") .. " на 1 метр")
+                lastMove = now
+                print("[Xeno] Bang: " .. (bangPingPong == 1 and "вперёд" or "назад") .. " 1м")
             end
         end
     end)
@@ -551,6 +547,25 @@ local function toggleAimbot()
     print("[Xeno] Aimbot " .. (state.aimbot and "ON" or "OFF"))
 end
 
+-- ============================================
+-- БЫСТРАЯ И СТАБИЛЬНАЯ СИСТЕМА БИНДОВ
+-- ============================================
+local function bindFunction(key, func)
+    if binds[key] then
+        binds[key] = nil
+    end
+    binds[key] = func
+    print("[Xeno] ✅ Бинд: " .. tostring(key) .. " -> " .. tostring(func))
+end
+
+local function unbindFunction(key)
+    if binds[key] then
+        binds[key] = nil
+        print("[Xeno] ❌ Бинд снят: " .. tostring(key))
+    end
+end
+
+-- Обработка биндов
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if binds[input.KeyCode] then
@@ -582,7 +597,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v6.1"
+Title.Text = "FLAGMAN XENO v6.2"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -619,7 +634,7 @@ UIListLayout.Parent = ButtonContainer
 local allButtons = {}
 
 -- ============================================
--- СИСТЕМА БИНДОВ (без багов)
+-- КНОПКИ С БИНДАМИ
 -- ============================================
 local function createButton(text, callback)
     local btn = Instance.new("TextButton")
@@ -647,6 +662,7 @@ local function createButton(text, callback)
         btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     end)
     
+    -- БИНД: нажатие колёсика → ввод клавиши
     btn.MouseButton2Click:Connect(function()
         local dialog = Instance.new("TextBox")
         dialog.Size = UDim2.new(0, 300, 0, 35)
@@ -664,9 +680,7 @@ local function createButton(text, callback)
         connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if gameProcessed then return end
             if input.KeyCode ~= Enum.KeyCode.Unknown then
-                binds[input.KeyCode] = nil
-                binds[input.KeyCode] = callback
-                print("[Xeno] ✅ Бинд: " .. text .. " -> " .. input.KeyCode.Name)
+                bindFunction(input.KeyCode, callback)
                 dialog:Destroy()
                 if connection then connection:Disconnect() end
             end
@@ -829,7 +843,7 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
 end)
 
 print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v6.1 ✦")
+print("  ✦ FLAGMAN XENO v6.2 ✦")
 print("  INSERT - меню | X - Spider")
 print("  FLY X2 - в 2 раза быстрее")
 print("  BANG - 1м назад → 1м вперёд (циклично)")
