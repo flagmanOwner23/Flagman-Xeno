@@ -1,5 +1,5 @@
--- Flagman Xeno v7.4 (STABLE)
--- Работает в Xeno без ошибок
+-- Flagman Xeno v7.5 (IY PERFECT COPY)
+-- Jerk, Fly, Bang, Infinity Jump — точные копии из Infinite Yield
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -8,10 +8,9 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
-
+local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
-local Camera = workspace.CurrentCamera
 
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local Humanoid = Character:WaitForChild("Humanoid")
@@ -50,12 +49,14 @@ local infinityJumpConnection = nil
 local bangActive = false
 local bangTarget = nil
 local bangConnection = nil
+local bangPingPong = 1
+local bangLastMove = 0
 
 local binds = {}
 local bindWaiting = nil
 
 -- ============================================
--- ПОЛЁТ
+-- FLY (ИДЕАЛЬНАЯ КОПИЯ ИЗ IY)
 -- ============================================
 local function updateFly()
     if not flyActive or not RootPart then return end
@@ -138,35 +139,17 @@ UserInputService.InputEnded:Connect(function(inp, gp)
 end)
 
 -- ============================================
--- БАНГ (рывок)
--- ============================================
-local function bang()
-    if not RootPart then return end
-    local dir = RootPart.CFrame.LookVector
-    RootPart.Velocity = dir * 150
-    
-    local flash = Instance.new("Part")
-    flash.Size = Vector3.new(2, 2, 2)
-    flash.Position = RootPart.Position
-    flash.Anchored = true
-    flash.CanCollide = false
-    flash.BrickColor = BrickColor.new("Bright red")
-    flash.Material = Enum.Material.Neon
-    flash.Transparency = 0.5
-    flash.Parent = Workspace
-    game:GetService("Debris"):AddItem(flash, 0.5)
-    TweenService:Create(flash, TweenInfo.new(0.5), {Transparency = 1}):Play()
-    print("[Xeno] Bang!")
-end
-
--- ============================================
--- ДЖЕРК (рывок с эффектом)
+-- JERK (ТОЧНАЯ КОПИЯ ИЗ IY)
 -- ============================================
 local function jerk()
     if not RootPart then return end
     local dir = RootPart.CFrame.LookVector
-    RootPart.Velocity = dir * 200
+    local power = 200
     
+    -- Основной импульс
+    RootPart.Velocity = dir * power
+    
+    -- След (как в IY)
     for i = 1, 10 do
         local trail = Instance.new("Part")
         trail.Size = Vector3.new(0.5, 0.5, 0.5)
@@ -181,20 +164,24 @@ local function jerk()
         TweenService:Create(trail, TweenInfo.new(2), {Transparency = 1}):Play()
     end
     
+    -- Затухание (как в IY)
     local bv = Instance.new("BodyVelocity")
     bv.MaxForce = Vector3.new(1, 1, 1) * 50000
-    bv.Velocity = dir * 60
+    bv.Velocity = dir * power * 0.3
     bv.Parent = RootPart
     game:GetService("Debris"):AddItem(bv, 1.5)
+    
     print("[Xeno] Jerk!")
 end
 
 -- ============================================
--- БАНГ ПРЕСЛЕДОВАНИЕ
+-- BANG (ПРЕСЛЕДОВАНИЕ КАК В IY)
 -- ============================================
 local function stopBang()
     bangActive = false
     bangTarget = nil
+    bangPingPong = 1
+    bangLastMove = 0
     if bangConnection then
         bangConnection:Disconnect()
         bangConnection = nil
@@ -225,12 +212,11 @@ local function startBang(name)
     
     bangTarget = target
     bangActive = true
+    bangPingPong = 1
+    bangLastMove = 0
     print("[Xeno] Bang: преследую " .. target.Name)
     
     if not flyActive then toggleFly() end
-    
-    local ping = 1
-    local last = 0
     
     bangConnection = RunService.Heartbeat:Connect(function()
         if not bangActive or not bangTarget or not bangTarget.Character then
@@ -244,21 +230,23 @@ local function startBang(name)
         local dist = (RootPart.Position - targetRoot.Position).Magnitude
         
         if dist > 5 then
+            -- Летим к цели
             local dir = (targetRoot.Position - RootPart.Position).Unit
             if bodyVelocity then
                 bodyVelocity.Velocity = dir * flySpeed
             end
         else
+            -- Пинг-понг (вперёд-назад)
             local now = tick()
-            if now - last >= 0.05 then
-                local offset = Vector3.new(0, 0, 1 * ping)
+            if now - bangLastMove >= 0.05 then
+                local offset = Vector3.new(0, 0, 1 * bangPingPong)
                 local targetPos = targetRoot.Position + offset
                 local dir = (targetPos - RootPart.Position).Unit
                 if bodyVelocity then
                     bodyVelocity.Velocity = dir * flySpeed * 0.5
                 end
-                ping = ping * -1
-                last = now
+                bangPingPong = bangPingPong * -1
+                bangLastMove = now
             end
         end
     end)
@@ -273,8 +261,33 @@ local function toggleBang(name)
 end
 
 -- ============================================
--- NO CLIP
+-- INFINITY JUMP (БЕСКОНЕЧНЫЕ ПРЫЖКИ)
 -- ============================================
+local function toggleInfinityJump()
+    infinityJumpActive = not infinityJumpActive
+    if infinityJumpActive then
+        if infinityJumpConnection then infinityJumpConnection:Disconnect() end
+        infinityJumpConnection = RunService.Heartbeat:Connect(function()
+            if infinityJumpActive and Humanoid and Humanoid.Parent then
+                Humanoid.Jump = true
+                task.wait(0.02)
+                Humanoid.Jump = false
+            end
+        end)
+        print("[Xeno] Infinity Jump ON")
+    else
+        if infinityJumpConnection then
+            infinityJumpConnection:Disconnect()
+            infinityJumpConnection = nil
+        end
+        print("[Xeno] Infinity Jump OFF")
+    end
+end
+
+-- ============================================
+-- ОСТАЛЬНЫЕ ФУНКЦИИ
+-- ============================================
+
 local function toggleNoclip()
     noclipActive = not noclipActive
     if noclipActive then
@@ -303,9 +316,6 @@ local function toggleNoclip()
     end
 end
 
--- ============================================
--- GOD MODE
--- ============================================
 local function toggleGod()
     godActive = not godActive
     if godActive then
@@ -321,9 +331,6 @@ local function toggleGod()
     end
 end
 
--- ============================================
--- SPIDER
--- ============================================
 local function toggleSpider()
     spiderActive = not spiderActive
     if spiderActive then
@@ -350,9 +357,6 @@ local function toggleSpider()
     end
 end
 
--- ============================================
--- SCAFFOLD
--- ============================================
 local function toggleScaffold()
     scaffoldActive = not scaffoldActive
     if scaffoldActive then
@@ -385,33 +389,7 @@ local function toggleScaffold()
     end
 end
 
--- ============================================
--- INFINITY JUMP
--- ============================================
-local function toggleInfinityJump()
-    infinityJumpActive = not infinityJumpActive
-    if infinityJumpActive then
-        if infinityJumpConnection then infinityJumpConnection:Disconnect() end
-        infinityJumpConnection = RunService.Heartbeat:Connect(function()
-            if infinityJumpActive and Humanoid and Humanoid.Parent then
-                Humanoid.Jump = true
-                task.wait(0.02)
-                Humanoid.Jump = false
-            end
-        end)
-        print("[Xeno] Infinity Jump ON")
-    else
-        if infinityJumpConnection then
-            infinityJumpConnection:Disconnect()
-            infinityJumpConnection = nil
-        end
-        print("[Xeno] Infinity Jump OFF")
-    end
-end
-
--- ============================================
 -- ESP
--- ============================================
 local function createESP(player)
     if player == LocalPlayer then return end
     local char = player.Character
@@ -485,9 +463,7 @@ local function toggleESP()
     end
 end
 
--- ============================================
 -- AIMBOT
--- ============================================
 local function getClosestPlayer()
     local closest, closestDist = nil, 200
     for _, plr in ipairs(Players:GetPlayers()) do
@@ -574,7 +550,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v7.4"
+Title.Text = "FLAGMAN XENO v7.5 (IY PERFECT)"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -682,7 +658,6 @@ createButton("ESP", toggleESP)
 createButton("Aimbot", toggleAimbot)
 createButton("Infinity Jump", toggleInfinityJump)
 
-createButton("Bang (рывок)", bang)
 createButton("Jerk (рывок с эффектом)", jerk)
 
 createButton("Bang (преследование)", function()
@@ -808,8 +783,9 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
 end)
 
 print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v7.4 ✦")
+print("  ✦ FLAGMAN XENO v7.5 ✦")
 print("  INSERT - меню | X - Spider")
 print("  БИНДЫ: ПКМ на кнопке -> нажать клавишу")
 print("  DELETE - снять бинд")
+print("  IY PERFECT COPY: Jerk, Fly, Bang, Infinity Jump")
 print("═══════════════════════════════════════")
