@@ -1,5 +1,5 @@
--- Flagman Xeno v5.2 (NEW FLY + SCROLL BINDS)
--- Полностью переделан: новый полёт (зависание + WASD + Space/Shift)
+-- Flagman Xeno v5.3 (Right Shift Menu + NEW BINDS)
+-- Полностью переделан: меню по Right Shift, бинды через колёсико + клавиша
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -37,58 +37,31 @@ local spiderConnection = nil
 local scaffoldConnection = nil
 local espObjects = {}
 local espConnections = {}
-local binds = {}
+local binds = {}  -- {[KeyCode] = function}
 
 -- ============================================
--- НОВЫЙ ПОЛЁТ (зависание + управление WASD)
+-- НОВЫЙ ПОЛЁТ (зависание + WASD + Space/Shift)
 -- ============================================
 local flyConnection = nil
-local flyKeys = {
-    W = false,
-    A = false,
-    S = false,
-    D = false,
-    Space = false,
-    Shift = false
-}
+local flyKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
 
 local function updateFly()
     if not state.fly or not RootPart then return end
-    
     local direction = Vector3.new(0, 0, 0)
     local camCF = Camera.CFrame
     local forward = camCF.LookVector
     local right = camCF.RightVector
     
-    -- Движение вперёд/назад (W/S)
-    if flyKeys.W then
-        direction = direction + forward
-    end
-    if flyKeys.S then
-        direction = direction - forward
-    end
+    if flyKeys.W then direction = direction + forward end
+    if flyKeys.S then direction = direction - forward end
+    if flyKeys.A then direction = direction - right end
+    if flyKeys.D then direction = direction + right end
+    if flyKeys.Space then direction = direction + Vector3.new(0, 1, 0) end
+    if flyKeys.Shift then direction = direction - Vector3.new(0, 1, 0) end
     
-    -- Движение вправо/влево (A/D)
-    if flyKeys.A then
-        direction = direction - right
-    end
-    if flyKeys.D then
-        direction = direction + right
-    end
-    
-    -- Вверх/вниз (Space/Shift)
-    if flyKeys.Space then
-        direction = direction + Vector3.new(0, 1, 0)
-    end
-    if flyKeys.Shift then
-        direction = direction - Vector3.new(0, 1, 0)
-    end
-    
-    -- Нормализация и применение скорости
     if direction.Magnitude > 0 then
         direction = direction.Unit * state.flySpeed
     end
-    
     if bodyVelocity then
         bodyVelocity.Velocity = direction
     end
@@ -96,48 +69,35 @@ end
 
 local function toggleFly()
     state.fly = not state.fly
-    
     if state.fly then
-        -- Очищаем старые объекты
         if bodyVelocity then bodyVelocity:Destroy() end
         if bodyGyro then bodyGyro:Destroy() end
         if flyConnection then flyConnection:Disconnect() end
         
-        -- Создаём BodyVelocity для полёта
         bodyVelocity = Instance.new("BodyVelocity")
         bodyVelocity.MaxForce = Vector3.new(1, 1, 1) * 100000
         bodyVelocity.Velocity = Vector3.new(0, 0, 0)
         bodyVelocity.Parent = RootPart
         
-        -- BodyGyro для стабилизации
         bodyGyro = Instance.new("BodyGyro")
         bodyGyro.MaxTorque = Vector3.new(1, 1, 1) * 100000
         bodyGyro.CFrame = RootPart.CFrame
         bodyGyro.Parent = RootPart
         
-        -- Запускаем обновление полёта
         flyConnection = RunService.Heartbeat:Connect(updateFly)
-        
-        -- Отключаем гравитацию
         Humanoid.PlatformStand = true
-        
         print("[Xeno] Fly ON (WASD + Space/Shift)")
     else
-        -- Очищаем всё
         if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
         if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
         if flyConnection then flyConnection:Disconnect() flyConnection = nil end
-        
         Humanoid.PlatformStand = false
-        
         print("[Xeno] Fly OFF")
     end
 end
 
--- Обработка нажатий клавиш для полёта
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
     if input.KeyCode == Enum.KeyCode.W then flyKeys.W = true end
     if input.KeyCode == Enum.KeyCode.A then flyKeys.A = true end
     if input.KeyCode == Enum.KeyCode.S then flyKeys.S = true end
@@ -146,9 +106,8 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if input.KeyCode == Enum.KeyCode.LeftShift then flyKeys.Shift = true end
 end)
 
-UserInputService.InputEnded:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
+UserInputService.InputEnded:Connect(function(input, gp)
+    if gp then return end
     if input.KeyCode == Enum.KeyCode.W then flyKeys.W = false end
     if input.KeyCode == Enum.KeyCode.A then flyKeys.A = false end
     if input.KeyCode == Enum.KeyCode.S then flyKeys.S = false end
@@ -409,25 +368,6 @@ local function toggleAimbot()
     print("[Xeno] Aimbot " .. (state.aimbot and "ON" or "OFF"))
 end
 
--- Обработка биндов на колёсико и AIMBOT
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    
-    if input.UserInputType == Enum.UserInputType.MouseWheel then
-        local direction = input.Position.Z
-        if binds[direction] then
-            binds[direction]()
-        end
-    end
-    
-    if state.aimbot and input.UserInputType == Enum.UserInputType.MouseButton2 then
-        local target = getClosestPlayer()
-        if target then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Position + Vector3.new(0, 1.5, 0))
-        end
-    end
-end)
-
 -- ============================================
 -- МЕНЮ (простое, только названия)
 -- ============================================
@@ -452,7 +392,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v5.2"
+Title.Text = "FLAGMAN XENO v5.3"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -488,6 +428,9 @@ UIListLayout.Parent = ButtonContainer
 
 local allButtons = {}
 
+-- ============================================
+-- НОВАЯ СИСТЕМА БИНДОВ (колёсико + клавиша)
+-- ============================================
 local function createButton(text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 40)
@@ -514,13 +457,14 @@ local function createButton(text, callback)
         btn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
     end)
     
+    -- НОВЫЙ БИНД: нажатие на колёсико (средняя кнопка)
     btn.MouseButton2Click:Connect(function()
         local dialog = Instance.new("TextBox")
-        dialog.Size = UDim2.new(0, 250, 0, 35)
-        dialog.Position = UDim2.new(0.5, -125, 0.5, -17)
+        dialog.Size = UDim2.new(0, 300, 0, 35)
+        dialog.Position = UDim2.new(0.5, -150, 0.5, -17)
         dialog.BackgroundColor3 = Color3.fromRGB(30, 30, 50)
         dialog.TextColor3 = Color3.fromRGB(255, 255, 255)
-        dialog.PlaceholderText = "Прокрутите колёсико вверх или вниз"
+        dialog.PlaceholderText = "Нажмите любую клавишу для бинда..."
         dialog.ClearTextOnFocus = false
         dialog.Font = Enum.Font.GothamMedium
         dialog.TextScaled = true
@@ -530,10 +474,9 @@ local function createButton(text, callback)
         local connection
         connection = UserInputService.InputBegan:Connect(function(input, gameProcessed)
             if gameProcessed then return end
-            if input.UserInputType == Enum.UserInputType.MouseWheel then
-                local direction = input.Position.Z
-                binds[direction] = callback
-                print("[Xeno] Бинд на скролл " .. (direction > 0 and "UP" or "DOWN"))
+            if input.KeyCode ~= Enum.KeyCode.Unknown then
+                binds[input.KeyCode] = callback
+                print("[Xeno] ✅ Бинд: " .. text .. " -> " .. input.KeyCode.Name)
                 dialog:Destroy()
                 connection:Disconnect()
             end
@@ -621,12 +564,21 @@ wait(0.1)
 ButtonContainer.CanvasSize = UDim2.new(0, 0, 0, #allButtons * 46 + 20)
 
 -- ============================================
--- УПРАВЛЕНИЕ
+-- ОБРАБОТКА БИНДОВ (клавиши)
 -- ============================================
-
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.Insert then
+    if binds[input.KeyCode] then
+        binds[input.KeyCode]()
+    end
+end)
+
+-- ============================================
+-- УПРАВЛЕНИЕ (Right Shift для меню)
+-- ============================================
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
         MainFrame.Visible = not MainFrame.Visible
         if MainFrame.Visible then
             updateSearch("")
@@ -634,6 +586,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
+-- Хоткей Spider (X)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if input.KeyCode == Enum.KeyCode.X then
@@ -663,7 +616,6 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     if scaffoldConnection then scaffoldConnection:Disconnect() scaffoldConnection = nil end
     
     Humanoid.PlatformStand = false
-    
     setSpeed(1)
     setJump(1)
     
@@ -671,8 +623,8 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
 end)
 
 print("═══════════════════════════════════════")
-print("  ✦ FLAGMAN XENO v5.2 ✦")
-print("  INSERT - меню | X - Spider")
+print("  ✦ FLAGMAN XENO v5.3 ✦")
+print("  Right Shift - меню | X - Spider")
 print("  FLY: WASD + Space(вверх) + Shift(вниз)")
-print("  ПКМ по кнопке -> бинд на колёсико")
+print("  БИНДЫ: нажмите колёсико на кнопке -> нажмите клавишу")
 print("═══════════════════════════════════════")
