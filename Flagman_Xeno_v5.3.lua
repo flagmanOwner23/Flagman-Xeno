@@ -1,11 +1,10 @@
--- Flagman Xeno v5.3 ULTIMATE (меню по Insert)
+-- Flagman Xeno v5.3 ULTIMATE (исправленные бинды)
 -- Автор: good
--- Все функции активны, бинды через колёсико + клавиша
+-- Меню: Insert | Бинды: клик ПКМ по кнопке -> введите клавишу
 
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local Workspace = game:GetService("Workspace")
 local Camera = workspace.CurrentCamera
@@ -42,8 +41,10 @@ local antiAFKConnection = nil
 local infiniteJumpConnection = nil
 local espObjects = {}
 local espConnections = {}
-local binds = {}
 local flyKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
+
+-- =================== ГЛОБАЛЬНЫЙ ХРАНИЛИЩЕ БИНДОВ ===================
+_G.XenoBinds = _G.XenoBinds or {}
 
 -- =================== FLY ===================
 local flyConnection = nil
@@ -79,11 +80,13 @@ local function toggleFly()
         bodyGyro.Parent = RootPart
         flyConnection = RunService.Heartbeat:Connect(updateFly)
         Humanoid.PlatformStand = true
+        print("[Xeno] Fly ON")
     else
         if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
         if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
         if flyConnection then flyConnection:Disconnect() flyConnection = nil end
         Humanoid.PlatformStand = false
+        print("[Xeno] Fly OFF")
     end
 end
 
@@ -122,6 +125,7 @@ local function toggleNoclip()
                 end
             end
         end)
+        print("[Xeno] Noclip ON")
     else
         if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
         for _, part in ipairs(Character:GetDescendants()) do
@@ -129,6 +133,7 @@ local function toggleNoclip()
                 part.CanCollide = true
             end
         end
+        print("[Xeno] Noclip OFF")
     end
 end
 
@@ -139,10 +144,12 @@ local function toggleGod()
         Humanoid.MaxHealth = math.huge
         Humanoid.Health = math.huge
         Humanoid.BreakJointsOnDeath = false
+        print("[Xeno] God ON")
     else
         Humanoid.MaxHealth = 100
         Humanoid.Health = 100
         Humanoid.BreakJointsOnDeath = true
+        print("[Xeno] God OFF")
     end
 end
 
@@ -162,9 +169,11 @@ local function toggleSpider()
                 end
             end
         end)
+        print("[Xeno] Spider ON")
     else
         if spiderConnection then spiderConnection:Disconnect() spiderConnection = nil end
         Humanoid.WalkSpeed = 16 * state.speed
+        print("[Xeno] Spider OFF")
     end
 end
 
@@ -191,8 +200,10 @@ local function toggleScaffold()
                 end
             end
         end)
+        print("[Xeno] Scaffold ON")
     else
         if scaffoldConnection then scaffoldConnection:Disconnect() scaffoldConnection = nil end
+        print("[Xeno] Scaffold OFF")
     end
 end
 
@@ -207,8 +218,10 @@ local function toggleAntiAFK()
                 game:GetService("VirtualUser"):ClickButton2(Vector2.new())
             end
         end)
+        print("[Xeno] Anti-AFK ON")
     else
         if antiAFKConnection then antiAFKConnection:Disconnect() antiAFKConnection = nil end
+        print("[Xeno] Anti-AFK OFF")
     end
 end
 
@@ -222,8 +235,10 @@ local function toggleInfiniteJump()
                 Humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
             end
         end)
+        print("[Xeno] Infinite Jump ON")
     else
         if infiniteJumpConnection then infiniteJumpConnection:Disconnect() infiniteJumpConnection = nil end
+        print("[Xeno] Infinite Jump OFF")
     end
 end
 
@@ -231,10 +246,13 @@ end
 local function setSpeed(v)
     state.speed = v or 1
     Humanoid.WalkSpeed = 16 * state.speed
+    print("[Xeno] Speed: " .. Humanoid.WalkSpeed)
 end
+
 local function setJump(v)
     state.jump = v or 1
     Humanoid.JumpPower = 50 * state.jump
+    print("[Xeno] Jump: " .. Humanoid.JumpPower)
 end
 
 -- =================== CLEAR / KILL / TP ===================
@@ -246,17 +264,21 @@ local function clearAll()
             count = count + 1
         end
     end
+    print("[Xeno] Cleared " .. count .. " parts")
 end
 
 local function killAll()
+    local count = 0
     for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer then
             local char = player.Character
             if char and char:FindFirstChild("Humanoid") then
                 char.Humanoid.Health = 0
+                count = count + 1
             end
         end
     end
+    print("[Xeno] Killed " .. count .. " players")
 end
 
 local function teleportToPlayer(name)
@@ -265,10 +287,12 @@ local function teleportToPlayer(name)
             local char = player.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
                 RootPart.CFrame = char.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+                print("[Xeno] TP to " .. player.Name)
                 return
             end
         end
     end
+    print("[Xeno] Player not found")
 end
 
 -- =================== ESP ===================
@@ -355,17 +379,20 @@ local function toggleESP()
                 if state.esp then createESP(player) end
             end)
         end)
+        print("[Xeno] ESP ON")
     else
         for _, obj in ipairs(espObjects) do obj:Destroy() end
         espObjects = {}
         for _, conn in ipairs(espConnections) do conn:Disconnect() end
         espConnections = {}
+        print("[Xeno] ESP OFF")
     end
 end
 
 -- =================== AIMBOT ===================
 local function toggleAimbot()
     state.aimbot = not state.aimbot
+    print("[Xeno] Aimbot " .. (state.aimbot and "ON" or "OFF"))
 end
 
 RunService.Heartbeat:Connect(function()
@@ -458,6 +485,113 @@ UIListLayout.Parent = ButtonContainer
 
 local allButtons = {}
 
+-- =================== НОВАЯ СИСТЕМА БИНДОВ ===================
+local function setupBind(button, callback, funcName)
+    -- ПКМ по кнопке
+    button.MouseButton2Click:Connect(function()
+        -- Создаём диалог для ввода клавиши
+        local dialog = Instance.new("Frame")
+        dialog.Size = UDim2.new(0, 300, 0, 100)
+        dialog.Position = UDim2.new(0.5, -150, 0.5, -50)
+        dialog.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+        dialog.BorderSizePixel = 2
+        dialog.BorderColor3 = Color3.fromRGB(255, 80, 80)
+        dialog.Parent = MainFrame
+        
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 0, 30)
+        label.Position = UDim2.new(0, 0, 0, 5)
+        label.BackgroundTransparency = 1
+        label.Text = "Нажмите клавишу для бинда"
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextScaled = true
+        label.Font = Enum.Font.GothamMedium
+        label.Parent = dialog
+        
+        local keyDisplay = Instance.new("TextLabel")
+        keyDisplay.Size = UDim2.new(1, 0, 0, 30)
+        keyDisplay.Position = UDim2.new(0, 0, 0, 40)
+        keyDisplay.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+        keyDisplay.Text = "Ожидание..."
+        keyDisplay.TextColor3 = Color3.fromRGB(255, 255, 100)
+        keyDisplay.TextScaled = true
+        keyDisplay.Font = Enum.Font.GothamBold
+        keyDisplay.Parent = dialog
+        
+        local closeBtn = Instance.new("TextButton")
+        closeBtn.Size = UDim2.new(0, 80, 0, 25)
+        closeBtn.Position = UDim2.new(0.5, -40, 1, -30)
+        closeBtn.BackgroundColor3 = Color3.fromRGB(60, 20, 20)
+        closeBtn.Text = "Отмена"
+        closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        closeBtn.TextScaled = true
+        closeBtn.Font = Enum.Font.GothamMedium
+        closeBtn.Parent = dialog
+        
+        local bindConnection
+        local dialogDestroyed = false
+        
+        -- Отмена
+        closeBtn.MouseButton1Click:Connect(function()
+            dialogDestroyed = true
+            if bindConnection then bindConnection:Disconnect() end
+            dialog:Destroy()
+        end)
+        
+        -- Ожидание нажатия клавиши
+        bindConnection = UserInputService.InputBegan:Connect(function(input, gp)
+            if gp then return end
+            if dialogDestroyed then return end
+            
+            local key = input.KeyCode
+            if key ~= Enum.KeyCode.Unknown then
+                -- Сохраняем бинд
+                _G.XenoBinds[key] = callback
+                keyDisplay.Text = "✅ " .. key.Name
+                print("[Xeno] Бинд установлен: " .. key.Name)
+                
+                -- Подсветка кнопки
+                button.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
+                wait(0.3)
+                button.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
+                
+                -- Закрываем диалог
+                wait(0.5)
+                dialogDestroyed = true
+                bindConnection:Disconnect()
+                dialog:Destroy()
+            end
+        end)
+        
+        -- Закрытие при потере фокуса (клик вне диалога)
+        local focusConn
+        focusConn = UserInputService.InputBegan:Connect(function(input, gp)
+            if gp then return end
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+                local absPos = dialog.AbsolutePosition
+                local absSize = dialog.AbsoluteSize
+                if not (mousePos.X >= absPos.X and mousePos.X <= absPos.X + absSize.X and
+                        mousePos.Y >= absPos.Y and mousePos.Y <= absPos.Y + absSize.Y) then
+                    dialogDestroyed = true
+                    if bindConnection then bindConnection:Disconnect() end
+                    if focusConn then focusConn:Disconnect() end
+                    dialog:Destroy()
+                end
+            end
+        end)
+        
+        dialog.AncestryChanged:Connect(function()
+            if not dialog.Parent then
+                dialogDestroyed = true
+                if bindConnection then bindConnection:Disconnect() end
+                if focusConn then focusConn:Disconnect() end
+            end
+        end)
+    end)
+end
+
+-- =================== СОЗДАНИЕ КНОПОК ===================
 local function createButton(text, callback)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1,0,0,40)
@@ -473,6 +607,7 @@ local function createButton(text, callback)
     btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(60,60,90) end)
     btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(40,40,60) end)
     
+    -- Левый клик - вызов функции
     btn.MouseButton1Click:Connect(function()
         callback()
         btn.BackgroundColor3 = Color3.fromRGB(100,255,100)
@@ -480,56 +615,25 @@ local function createButton(text, callback)
         btn.BackgroundColor3 = Color3.fromRGB(40,40,60)
     end)
     
-    -- Бинд через колёсико
-    btn.MouseButton2Click:Connect(function()
-        local dialog = Instance.new("TextBox")
-        dialog.Size = UDim2.new(0,300,0,35)
-        dialog.Position = UDim2.new(0.5,-150,0.5,-17)
-        dialog.BackgroundColor3 = Color3.fromRGB(30,30,50)
-        dialog.TextColor3 = Color3.fromRGB(255,255,255)
-        dialog.PlaceholderText = "Нажмите клавишу..."
-        dialog.ClearTextOnFocus = false
-        dialog.Font = Enum.Font.GothamMedium
-        dialog.TextScaled = true
-        dialog.Parent = MainFrame
-        dialog:CaptureFocus()
-        
-        local conn
-        conn = UserInputService.InputBegan:Connect(function(input, gp)
-            if gp then return end
-            if input.KeyCode ~= Enum.KeyCode.Unknown then
-                binds[input.KeyCode] = callback
-                dialog:Destroy()
-                conn:Disconnect()
-            end
-        end)
-        dialog.FocusLost:Connect(function()
-            dialog:Destroy()
-            if conn then conn:Disconnect() end
-        end)
-    end)
+    -- Настройка бинда (ПКМ)
+    setupBind(btn, callback, text)
     
     table.insert(allButtons, {button = btn, text = text:lower()})
     return btn
 end
 
-local function updateSearch(query)
-    query = query:lower()
-    local vis = 0
-    for _, data in ipairs(allButtons) do
-        if query == "" or data.text:find(query,1,true) then
-            data.button.Visible = true
-            vis = vis + 1
-        else
-            data.button.Visible = false
+-- =================== ОБРАБОТЧИК БИНДОВ ===================
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    local key = input.KeyCode
+    if key ~= Enum.KeyCode.Unknown then
+        if _G.XenoBinds[key] then
+            _G.XenoBinds[key]()
         end
     end
-    ButtonContainer.CanvasSize = UDim2.new(0,0,0, vis * 46 + 20)
-end
+end)
 
-SearchBox:GetPropertyChangedSignal("Text"):Connect(function() updateSearch(SearchBox.Text) end)
-
--- =================== КНОПКИ ===================
+-- =================== КНОПКИ МЕНЮ ===================
 createButton("Fly (WASD+Space/Shift)", toggleFly)
 createButton("Noclip", toggleNoclip)
 createButton("Godmode", toggleGod)
@@ -563,19 +667,34 @@ createButton("Teleport", function()
     end)
 end)
 
+-- Функция поиска
+local function updateSearch(query)
+    query = query:lower()
+    local vis = 0
+    for _, data in ipairs(allButtons) do
+        if query == "" or data.text:find(query,1,true) then
+            data.button.Visible = true
+            vis = vis + 1
+        else
+            data.button.Visible = false
+        end
+    end
+    ButtonContainer.CanvasSize = UDim2.new(0,0,0, vis * 46 + 20)
+end
+
+SearchBox:GetPropertyChangedSignal("Text"):Connect(function() updateSearch(SearchBox.Text) end)
+
 wait(0.1)
-ButtonContainer.CanvasSize = UDim2.new(0,0,0, #allButtons * 46 + 20)
+updateSearch("")
 
 -- =================== УПРАВЛЕНИЕ ===================
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
-    -- ОТКРЫТИЕ МЕНЮ ПО INSERT
     if input.KeyCode == Enum.KeyCode.Insert then
         MainFrame.Visible = not MainFrame.Visible
-        if MainFrame.Visible then updateSearch("") end
+        if MainFrame.Visible then updateSearch(SearchBox.Text) end
     end
     if input.KeyCode == Enum.KeyCode.X then toggleSpider() end
-    if binds[input.KeyCode] then binds[input.KeyCode]() end
 end)
 
 -- =================== СБРОС ПРИ РЕСПАВНЕ ===================
@@ -583,26 +702,31 @@ LocalPlayer.CharacterAdded:Connect(function(newChar)
     Character = newChar
     Humanoid = Character:WaitForChild("Humanoid")
     RootPart = Character:WaitForChild("HumanoidRootPart")
+    
     state.fly = false
     state.noclip = false
     state.god = false
     state.spider = false
     state.scaffold = false
+    
     if bodyVelocity then bodyVelocity:Destroy() bodyVelocity = nil end
     if bodyGyro then bodyGyro:Destroy() bodyGyro = nil end
     if flyConnection then flyConnection:Disconnect() flyConnection = nil end
     if noclipConnection then noclipConnection:Disconnect() noclipConnection = nil end
     if spiderConnection then spiderConnection:Disconnect() spiderConnection = nil end
     if scaffoldConnection then scaffoldConnection:Disconnect() scaffoldConnection = nil end
+    
     Humanoid.PlatformStand = false
     setSpeed(1)
     setJump(1)
+    
+    print("[Xeno] Character reset")
 end)
 
 print("═══════════════════════════════════════")
 print("  ✦ FLAGMAN XENO v5.3 ULTIMATE ✦")
 print("  Insert - меню | X - Spider")
 print("  FLY: WASD + Space(вверх) + Shift(вниз)")
-print("  БИНДЫ: нажмите колёсико на кнопке -> клавиша")
-print("  ДОБАВЛЕНО: Anti-AFK, Infinite Jump")
+print("  БИНДЫ: ПКМ по кнопке -> нажмите клавишу")
+print("  Сохраняются в _G.XenoBinds")
 print("═══════════════════════════════════════")
