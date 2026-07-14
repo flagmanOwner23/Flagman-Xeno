@@ -1,4 +1,4 @@
--- Flagman Xeno v5.3 ULTIMATE (меню по F4)
+-- Flagman Xeno v5.3 ULTIMATE (меню по Insert)
 -- Автор: good
 -- Все функции активны, бинды через колёсико + клавиша
 
@@ -569,8 +569,8 @@ ButtonContainer.CanvasSize = UDim2.new(0,0,0, #allButtons * 46 + 20)
 -- =================== УПРАВЛЕНИЕ ===================
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
-    -- ОТКРЫТИЕ МЕНЮ ПО F4
-    if input.KeyCode == Enum.KeyCode.F4 then
+    -- ОТКРЫТИЕ МЕНЮ ПО INSERT
+    if input.KeyCode == Enum.KeyCode.Insert then
         MainFrame.Visible = not MainFrame.Visible
         if MainFrame.Visible then updateSearch("") end
     end
@@ -601,7 +601,7 @@ end)
 
 print("═══════════════════════════════════════")
 print("  ✦ FLAGMAN XENO v5.3 ULTIMATE ✦")
-print("  F4 - меню | X - Spider")
+print("  Insert - меню | X - Spider")
 print("  FLY: WASD + Space(вверх) + Shift(вниз)")
 print("  БИНДЫ: нажмите колёсико на кнопке -> клавиша")
 print("  ДОБАВЛЕНО: Anti-AFK, Infinite Jump")
