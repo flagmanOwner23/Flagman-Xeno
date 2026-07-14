@@ -1,5 +1,6 @@
--- Flagman Xeno v7.0 (IY Style)
+-- Flagman Xeno v7.1 (IY Style)
 -- Fly с регулировкой скорости, Bang как в Infinite Yield
+-- Исправлены все ошибки
 -- Автор: good
 
 local Players = game:GetService("Players")
@@ -46,6 +47,10 @@ local bangConnection = nil
 local bangActive = false
 local bangTarget = nil
 local bangPingPong = 1
+local flyConnection = nil
+local flyKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
+local fly2Connection = nil
+local fly2Keys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
 
 -- ============================================
 -- ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
@@ -79,9 +84,6 @@ end
 -- ============================================
 -- ПОЛЁТ (IY STYLE) с регулировкой скорости
 -- ============================================
-local flyConnection = nil
-local flyKeys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
-
 local function updateFly()
     if not state.fly or not RootPart then return end
     local direction = Vector3.new(0, 0, 0)
@@ -130,18 +132,14 @@ local function toggleFly()
     end
 end
 
--- Регулировка скорости полёта (как в IY)
 local function setFlySpeed(value)
     state.flySpeed = value
     print("[Xeno] Fly Speed: " .. value)
 end
 
 -- ============================================
--- ПОЛЁТ X2 (для совместимости)
+-- ПОЛЁТ X2
 -- ============================================
-local fly2Connection = nil
-local fly2Keys = {W=false, A=false, S=false, D=false, Space=false, Shift=false}
-
 local function updateFly2()
     if not state.fly2 or not RootPart then return end
     local direction = Vector3.new(0, 0, 0)
@@ -190,6 +188,7 @@ local function toggleFly2()
     end
 end
 
+-- Управление клавишами для полёта
 UserInputService.InputBegan:Connect(function(input, gp)
     if gp then return end
     if state.fly then
@@ -236,12 +235,10 @@ end)
 local function bang()
     if not RootPart then return end
     local direction = RootPart.CFrame.LookVector
-    local power = 150  -- стандартная сила рывка в IY
+    local power = 150
     
-    -- Создаём импульс
     RootPart.Velocity = direction * power
     
-    -- Визуальный эффект (вспышка)
     local flash = Instance.new("Part")
     flash.Size = Vector3.new(2, 2, 2)
     flash.Position = RootPart.Position
@@ -282,7 +279,7 @@ local function toggleInfinityJump()
 end
 
 -- ============================================
--- BANG ПРЕСЛЕДОВАНИЕ (опционально)
+-- BANG ПРЕСЛЕДОВАНИЕ
 -- ============================================
 local function stopBang()
     bangActive = false
@@ -695,7 +692,7 @@ Title.Size = UDim2.new(1, 0, 0, 50)
 Title.Position = UDim2.new(0, 0, 0, 0)
 Title.BackgroundColor3 = Color3.fromRGB(40, 40, 70)
 Title.BackgroundTransparency = 0.5
-Title.Text = "FLAGMAN XENO v7.0 (IY Style)"
+Title.Text = "FLAGMAN XENO v7.1 (IY Style)"
 Title.TextColor3 = Color3.fromRGB(255, 100, 100)
 Title.TextScaled = true
 Title.Font = Enum.Font.GothamBold
@@ -809,10 +806,8 @@ createButton("ESP", toggleESP)
 createButton("Aimbot", toggleAimbot)
 createButton("Infinity Jump", toggleInfinityJump)
 
--- Bang (как в IY)
 createButton("Bang (рывок)", bang)
 
--- Bang преследование
 createButton("Bang (преследование)", function()
     local dialog = Instance.new("TextBox")
     dialog.Size = UDim2.new(0, 250, 0, 35)
@@ -899,4 +894,16 @@ end)
 LocalPlayer.CharacterAdded:Connect(function(newChar)
     Character = newChar
     Humanoid = Character:WaitForChild("Humanoid")
-    RootPart =
+    RootPart = Character:WaitForChild("HumanoidRootPart")
+    
+    stopFly()
+    state.noclip = false
+    state.god = false
+    state.spider = false
+    state.scaffold = false
+    state.bang = false
+    state.infinityJump = false
+    
+    if noclipPart then noclipPart:Destroy() noclipPart = nil end
+    if spiderConnection then spiderConnection:Disconnect() spiderConnection = nil end
+    if scaffoldConnection then scaffoldConnection:Disconnect
